@@ -202,7 +202,100 @@ textarea.fi{resize:vertical;min-height:78px}
 .modal h3{font-family:'Playfair Display',serif;color:var(--forest);margin-bottom:12px}
 .modal-close{float:right;background:none;border:none;font-size:1.2rem;cursor:pointer;color:#aaa}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:4px}
-@media(max-width:640px){.sb{display:none}.hist-sb{display:none}.frow{flex-direction:column}}
+@media(max-width:768px){
+  /* Nav */
+  nav{padding:0 8px;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tab{font-size:.62rem;padding:12px 8px;white-space:nowrap}
+  .nav-a{font-size:.6rem;padding:4px 8px}
+
+  /* Hide sidebars on mobile */
+  .sb{display:none}
+  .hist-sb{display:none}
+
+  /* Chat panel full width */
+  .chat-main{width:100%}
+  .msgs{padding:10px}
+  .msg{max-width:90%}
+  .bub{font-size:.82rem;padding:8px 11px}
+  .inp-row{padding:8px 10px}
+  #ci{font-size:.84rem;padding:8px 10px}
+
+  /* Bottom mobile toolbar replacing sidebar */
+  .mob-bar{display:flex !important}
+
+  /* Map */
+  #map-panel{flex-direction:column}
+  .map-bar{flex-wrap:wrap;gap:6px;padding:8px}
+  .map-bar input{width:100%}
+
+  /* Compare */
+  .frow{flex-direction:column}
+  .cmp-wrap{padding:16px 12px}
+
+  /* Trips */
+  .trips-wrap{padding:16px 12px}
+
+  /* Suggestion chips smaller */
+  .sc{font-size:.65rem;padding:3px 8px}
+  .chips-row{padding:5px 10px}
+
+  /* Header */
+  .c-head{padding:8px 12px}
+  .c-meta h3{font-size:.82rem}
+  .c-actions{gap:4px}
+  .c-act{font-size:.6rem;padding:3px 7px}
+}
+
+/* Mobile settings drawer */
+.mob-drawer{
+  display:none;position:fixed;bottom:58px;left:0;right:0;
+  background:var(--forest);border-top:1px solid rgba(255,255,255,.15);
+  padding:16px;z-index:99;max-height:60vh;overflow-y:auto;
+  transform:translateY(100%);transition:transform .3s ease;
+}
+.mob-drawer.open{transform:translateY(0)}
+@media(max-width:768px){
+  .mob-drawer{display:block}
+  .mob-only{display:flex !important}
+}
+.mob-drawer .lang-w,.mob-drawer .ww,.mob-drawer .dw,.mob-drawer .action-row{
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+  border-radius:9px;padding:10px;margin-bottom:8px;
+}
+.mob-drawer .lbl{color:rgba(255,255,255,.5);font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.mob-drawer .lang-sel{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:7px;padding:6px 8px;font-size:.78rem;width:100%}
+.mob-drawer .ws{display:flex;gap:6px}
+.mob-drawer .ws input{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:6px 8px;color:#fff;font-size:.78rem}
+.mob-drawer .ws button,.mob-drawer .act-btn{background:var(--gold);border:none;border-radius:7px;padding:6px 12px;color:var(--forest);font-weight:600;font-size:.75rem;cursor:pointer}
+.mob-drawer .action-row{display:flex;gap:8px}
+.mob-drawer .act-btn{flex:1;padding:10px 6px;text-align:center;font-size:.72rem}
+
+/* Mobile bottom toolbar - hidden on desktop */
+.mob-bar{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--forest);
+  border-top:1px solid rgba(255,255,255,.1);
+  padding:6px 0 10px;
+  z-index:100;
+  justify-content:space-around;
+  align-items:center;
+}
+.mob-bar-btn{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:none;border:none;color:rgba(255,255,255,.5);
+  font-family:'DM Sans',sans-serif;font-size:.55rem;cursor:pointer;
+  padding:4px 8px;border-radius:8px;transition:all .2s;min-width:48px;
+}
+.mob-bar-btn .mbi{font-size:1.1rem}
+.mob-bar-btn.on{color:var(--gold)}
+.mob-bar-btn:hover{color:var(--gold)}
+
+/* Add bottom padding on mobile so content isn't hidden behind toolbar */
+@media(max-width:768px){
+  .app{padding-bottom:58px}
+  .modal{max-height:70vh}
+}
 </style>
 </head>
 <body>
@@ -298,6 +391,7 @@ textarea.fi{resize:vertical;min-height:78px}
         <div class="c-meta"><h3 id="chat-header-name">CultureQuest AI</h3><p id="chat-header-sub">Groq · Multilingual · Weather · Distances · Personalised</p></div>
         <div class="c-actions">
           <button class="c-act" onclick="switchTab('trips',document.querySelectorAll('.tab')[3])">🔖 Saved Trips</button>
+          <button class="c-act mob-only" onclick="toggleMobDrawer()" style="display:none">⚙️</button>
         </div>
         <div class="dot"></div>
       </div>
@@ -878,6 +972,73 @@ async function submitGem(){
     else{const er=document.getElementById('t-err');er.textContent='Error: '+(d.error||'failed');er.style.display='block';setTimeout(()=>er.style.display='none',5000);}
   }catch(e){document.getElementById('t-err').textContent='Cannot reach server.';document.getElementById('t-err').style.display='block';}
   btn.disabled=false;btn.textContent='📤 Submit Hidden Gem';
+}
+</script>
+
+<!-- Mobile settings drawer -->
+<div class="mob-drawer" id="mob-drawer">
+  <div class="lbl">🌐 Language</div>
+  <div class="lang-w">
+    <select class="lang-sel" onchange="setLang(this.value);document.getElementById('lang-sel').value=this.value">
+      <option value="English">English</option>
+      <option value="Hindi">हिंदी (Hindi)</option>
+      <option value="Punjabi">ਪੰਜਾਬੀ (Punjabi)</option>
+      <option value="Bengali">বাংলা (Bengali)</option>
+      <option value="Tamil">தமிழ் (Tamil)</option>
+      <option value="Telugu">తెలుగు (Telugu)</option>
+      <option value="Marathi">मराठी (Marathi)</option>
+      <option value="French">Français</option>
+      <option value="Spanish">Español</option>
+    </select>
+  </div>
+  <div class="lbl">🌤️ Live Weather</div>
+  <div class="ww">
+    <div class="ws">
+      <input id="mob-w-city" placeholder="City name..." onkeydown="if(event.key==='Enter')fetchW()"/>
+      <button onclick="document.getElementById('w-city').value=document.getElementById('mob-w-city').value;fetchW()">Go</button>
+    </div>
+    <div class="w-res" id="mob-w-res" style="margin-top:8px;color:rgba(255,255,255,.7);font-size:.78rem"></div>
+  </div>
+  <div class="lbl">🚀 Quick Actions</div>
+  <div class="action-row">
+    <button class="act-btn" onclick="surpriseMe();toggleMobDrawer()">🎲 Surprise</button>
+    <button class="act-btn" onclick="mobSwitch('compare',document.querySelectorAll('.mob-bar-btn')[2]);toggleMobDrawer()">⚖️ Compare</button>
+    <button class="act-btn" onclick="mobSwitch('map',document.querySelectorAll('.mob-bar-btn')[1]);toggleMobDrawer()">🗺️ Map</button>
+  </div>
+</div>
+
+<!-- Mobile bottom navigation bar -->
+<div class="mob-bar" id="mob-bar">
+  <button class="mob-bar-btn on" onclick="mobSwitch('chat',this)">
+    <span class="mbi">💬</span>Chat
+  </button>
+  <button class="mob-bar-btn" onclick="mobSwitch('map',this)">
+    <span class="mbi">🗺️</span>Map
+  </button>
+  <button class="mob-bar-btn" onclick="mobSwitch('compare',this)">
+    <span class="mbi">⚖️</span>Compare
+  </button>
+  <button class="mob-bar-btn" onclick="mobSwitch('saved',this)">
+    <span class="mbi">🔖</span>Saved
+  </button>
+  <button class="mob-bar-btn" onclick="mobSwitch('sub',this)">
+    <span class="mbi">➕</span>Add Gem
+  </button>
+</div>
+
+<script>
+function toggleMobDrawer(){
+  const d = document.getElementById('mob-drawer');
+  d.classList.toggle('open');
+}
+
+function mobSwitch(tab, btn){
+  // Switch panel
+  const tabEl = document.querySelector('.tab[onclick*="''+tab+''"]');
+  if(tabEl) switchTab(tab, tabEl);
+  // Update mobile bar active state
+  document.querySelectorAll('.mob-bar-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
 }
 </script>
 </body>
