@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TripQuests Group Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{--forest:#1a2e1a;--moss:#3d5c2e;--sage:#7a9e68;--sand:#e8dcc8;--cream:#f5f0e8;--terra:#c4622d;--gold:#d4a847;--ink:#1c1c1c;--mist:#f0ece4}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"DM Sans",sans-serif;background:var(--cream);min-height:100vh}
+nav{background:var(--forest);padding:0 20px;display:flex;align-items:center;gap:16px;border-bottom:2px solid var(--moss)}
+.brand{font-family:"Playfair Display",serif;font-size:1.15rem;color:var(--gold);padding:13px 0;margin-right:auto}
+.brand span{color:var(--sage);font-style:italic}
+.nav-a{color:rgba(255,255,255,.55);font-size:.72rem;text-decoration:none;padding:13px 0}
+.nav-a:hover{color:var(--gold)}
+.page{max-width:1100px;margin:0 auto;padding:28px 20px}
+.lobby{display:flex;gap:20px;flex-wrap:wrap}
+.lcard{background:#fff;border-radius:14px;padding:28px;flex:1;min-width:260px;box-shadow:0 2px 12px rgba(0,0,0,.07)}
+.lcard h2{font-family:"Playfair Display",serif;font-size:1.1rem;color:var(--forest);margin-bottom:6px}
+.lcard p{color:#888;font-size:.8rem;margin-bottom:18px;line-height:1.5}
+.fi{width:100%;border:1.5px solid var(--sand);border-radius:9px;padding:9px 12px;font-family:"DM Sans",sans-serif;font-size:.85rem;color:var(--ink);background:var(--mist);outline:none;margin-bottom:10px;transition:border-color .2s;display:block}
+.fi:focus{border-color:var(--moss);background:#fff}
+.btn{width:100%;border:none;border-radius:9px;padding:11px;font-family:"DM Sans",sans-serif;font-size:.85rem;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-p{background:var(--forest);color:var(--gold)}
+.btn-p:hover{background:var(--moss)}
+.btn-s{background:var(--terra);color:#fff}
+.btn-s:hover{background:#a0481c}
+#room-view{display:none;grid-template-columns:1fr 320px;gap:16px}
+.rhead{background:var(--forest);border-radius:12px;padding:16px 20px;display:flex;align-items:center;gap:12px;margin-bottom:14px;grid-column:1/-1}
+.rh-title{font-family:"Playfair Display",serif;color:var(--gold);font-size:1.1rem}
+.rh-sub{color:rgba(255,255,255,.45);font-size:.75rem;margin-top:2px}
+.codebox{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:6px 14px;margin-left:auto;text-align:center}
+.roomcode{color:var(--gold);font-family:monospace;font-size:1.1rem;letter-spacing:.12em;display:block}
+.codelbl{color:rgba(255,255,255,.4);font-size:.6rem}
+.chatcol{background:#fff;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;height:560px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.chathead{font-family:"Playfair Display",serif;font-size:.9rem;color:var(--forest);padding:14px 16px;border-bottom:1px solid var(--sand);flex-shrink:0}
+.msgarea{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--mist)}
+.mi{display:flex;gap:8px;max-width:80%}
+.mi-me{margin-left:auto;flex-direction:row-reverse}
+.mav{width:26px;height:26px;border-radius:50%;background:var(--moss);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:600;flex-shrink:0;text-transform:uppercase}
+.mav-me{background:var(--terra)}
+.mbub{background:#fff;padding:8px 12px;border-radius:12px;border-top-left-radius:3px;font-size:.82rem;line-height:1.5;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.mbub-me{background:var(--forest);color:var(--sand);border-top-left-radius:12px;border-top-right-radius:3px}
+.mmeta{font-size:.6rem;color:rgba(0,0,0,.3);margin-top:2px}
+.mmeta-me{text-align:right}
+.chatinp{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--sand);background:#fff;flex-shrink:0}
+.chatinp input{flex:1;border:1.5px solid var(--sand);border-radius:9px;padding:8px 12px;font-family:"DM Sans",sans-serif;font-size:.82rem;color:var(--ink);background:var(--mist);outline:none}
+.chatinp input:focus{border-color:var(--moss);background:#fff}
+.chatinp button{background:var(--forest);color:var(--gold);border:none;border-radius:9px;padding:8px 14px;cursor:pointer;font-size:.82rem;font-weight:500}
+.rightcol{display:flex;flex-direction:column;gap:14px}
+.card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.card h3{font-family:"Playfair Display",serif;font-size:.9rem;color:var(--forest);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--sand)}
+.mlist{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.mtag{background:var(--mist);border:1px solid var(--sand);border-radius:20px;padding:3px 10px;font-size:.75rem;color:var(--moss)}
+.mtag-me{background:var(--forest);color:var(--gold);border-color:var(--forest)}
+.invrow{display:flex;gap:6px}
+.invrow input{flex:1;border:1.5px solid var(--sand);border-radius:7px;padding:6px 10px;font-family:"DM Sans",sans-serif;font-size:.78rem;color:var(--ink);background:var(--mist);outline:none}
+.invrow button{background:var(--moss);color:#fff;border:none;border-radius:7px;padding:6px 12px;cursor:pointer;font-size:.75rem;white-space:nowrap}
+.ilist{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;margin-bottom:10px}
+.iitem{background:var(--mist);border:1px solid var(--sand);border-left:3px solid var(--sage);border-radius:7px;padding:7px 10px;display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
+.ii-info{flex:1}
+.ii-day{font-size:.62rem;color:var(--moss);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.ii-place{font-size:.8rem;color:var(--forest);font-weight:500}
+.ii-by{font-size:.62rem;color:#aaa}
+.ii-del{background:none;border:none;color:#ccc;cursor:pointer;font-size:.9rem;padding:0;line-height:1}
+.ii-del:hover{color:var(--terra)}
+.addstop{display:flex;flex-direction:column;gap:5px}
+.arow{display:flex;gap:5px}
+.arow input,.arow select{flex:1;border:1.5px solid var(--sand);border-radius:7px;padding:5px 8px;font-family:"DM Sans",sans-serif;font-size:.75rem;color:var(--ink);background:var(--mist);outline:none}
+.anote{width:100%;border:1.5px solid var(--sand);border-radius:7px;padding:5px 8px;font-family:"DM Sans",sans-serif;font-size:.75rem;color:var(--ink);background:var(--mist);outline:none}
+.addbtn{width:100%;background:var(--terra);color:#fff;border:none;border-radius:7px;padding:7px;cursor:pointer;font-family:"DM Sans",sans-serif;font-size:.78rem;font-weight:500;margin-top:2px}
+.empty{color:#bbb;font-size:.75rem;text-align:center;padding:14px 0}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:4px}
+@media(max-width:768px){
+  #room-view{grid-template-columns:1fr}
+  .rhead{grid-column:1}
+  .rightcol{order:-1}
+}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">Culture<span>Quest</span></div>
+  <a class="nav-a" href="/">Back to Planner</a>
+  <a class="nav-a" href="/expenses">Split Expenses</a>
+</nav>
+<div class="page">
+
+  <div id="lobby-view" class="lobby">
+    <div class="lcard">
+      <h2>Start a Group Trip</h2>
+      <p>Create a room, share the code with friends, and plan together in real-time.</p>
+      <input class="fi" id="c-name" placeholder="Your name"/>
+      <input class="fi" id="c-trip" placeholder="Trip name (e.g. Ooty Weekend)"/>
+      <button class="btn btn-p" id="create-btn">Create Room</button>
+    </div>
+    <div class="lcard">
+      <h2>Join Existing Room</h2>
+      <p>Have a room code? Enter it below to join your group.</p>
+      <input class="fi" id="j-name" placeholder="Your name"/>
+      <input class="fi" id="j-code" placeholder="Room code (e.g. A3F9K2)"/>
+      <button class="btn btn-s" id="join-btn">Join Room</button>
+    </div>
+  </div>
+
+  <div id="room-view">
+    <div class="rhead">
+      <div>
+        <div class="rh-title" id="r-tripname">My Trip</div>
+        <div class="rh-sub" id="r-subtitle">Group planning session</div>
+      </div>
+      <div class="codebox">
+        <span class="roomcode" id="r-codeval">------</span>
+        <span class="codelbl">Share this code</span>
+      </div>
+    </div>
+
+    <div class="chatcol">
+      <div class="chathead">Group Chat</div>
+      <div class="msgarea" id="msg-area"></div>
+      <div class="chatinp">
+        <input id="chat-input" placeholder="Message the group..."/>
+        <button id="send-btn">Send</button>
+      </div>
+    </div>
+
+    <div class="rightcol">
+      <div class="card">
+        <h3>Members</h3>
+        <div class="mlist" id="member-list"></div>
+        <div class="invrow">
+          <input id="inv-input" placeholder="Add member by name"/>
+          <button id="inv-btn">Add</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Shared Itinerary</h3>
+        <div class="ilist" id="itin-list"><div class="empty">No stops added yet</div></div>
+        <div class="addstop">
+          <div class="arow">
+            <select id="s-day">
+              <option>Day 1</option>
+              <option>Day 2</option>
+              <option>Day 3</option>
+              <option>Day 4</option>
+              <option>Day 5</option>
+            </select>
+            <input id="s-time" placeholder="Time (e.g. 9 AM)"/>
+          </div>
+          <div class="arow">
+            <input id="s-place" placeholder="Place name"/>
+            <input id="s-city" placeholder="City"/>
+          </div>
+          <input class="anote" id="s-note" placeholder="Note (optional)"/>
+          <button class="addbtn" id="stop-btn">Add Stop</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+var roomId = "";
+var myName = "";
+var pollTimer = null;
+
+document.getElementById("create-btn").addEventListener("click", function() {
+  var name = document.getElementById("c-name").value.trim();
+  var trip = document.getElementById("c-trip").value.trim();
+  if (!name) { alert("Please enter your name."); return; }
+  if (!trip) { trip = "My Trip"; }
+  fetch("/api/room/create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ creator: name, trip_name: trip })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.error) { alert("Error: " + d.error); return; }
+    myName = name;
+    showRoom(d);
+  })
+  .catch(function(e) { alert("Cannot reach server. Is app.py running?\n" + e.message); });
+});
+
+document.getElementById("join-btn").addEventListener("click", function() {
+  var name = document.getElementById("j-name").value.trim();
+  var code = document.getElementById("j-code").value.trim().toUpperCase();
+  if (!name) { alert("Please enter your name."); return; }
+  if (!code) { alert("Please enter the room code."); return; }
+  fetch("/api/room/" + code + "/join", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: name })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.error) { alert("Error: " + d.error); return; }
+    myName = name;
+    showRoom(d);
+  })
+  .catch(function(e) { alert("Cannot reach server. Is app.py running?\n" + e.message); });
+});
+
+document.getElementById("send-btn").addEventListener("click", sendMsg);
+document.getElementById("chat-input").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") sendMsg();
+});
+
+document.getElementById("inv-btn").addEventListener("click", function() {
+  var nm = document.getElementById("inv-input").value.trim();
+  if (!nm) return;
+  fetch("/api/room/" + roomId + "/join", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: nm })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.error) { alert(d.error); return; }
+    document.getElementById("inv-input").value = "";
+    renderMembers(d.members || []);
+    postSysMsg(nm + " joined the trip!");
+  })
+  .catch(function(e) {});
+});
+
+document.getElementById("stop-btn").addEventListener("click", function() {
+  var place = document.getElementById("s-place").value.trim();
+  if (!place) { alert("Enter a place name."); return; }
+  var payload = {
+    day: document.getElementById("s-day").value,
+    time: document.getElementById("s-time").value.trim(),
+    place: place,
+    city: document.getElementById("s-city").value.trim(),
+    note: document.getElementById("s-note").value.trim(),
+    added_by: myName
+  };
+  fetch("/api/room/" + roomId + "/itinerary", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.error) { alert(d.error); return; }
+    document.getElementById("s-time").value = "";
+    document.getElementById("s-place").value = "";
+    document.getElementById("s-city").value = "";
+    document.getElementById("s-note").value = "";
+    postSysMsg(myName + " added " + place + " to " + payload.day);
+  })
+  .catch(function(e) {});
+});
+
+function showRoom(data) {
+  roomId = data.id;
+  document.getElementById("lobby-view").style.display = "none";
+  document.getElementById("room-view").style.display = "grid";
+  document.getElementById("r-tripname").textContent = data.trip_name || "My Trip";
+  document.getElementById("r-codeval").textContent = data.id;
+  document.getElementById("r-subtitle").textContent = "Creator: " + data.creator + " · " + data.members.length + " members";
+  renderMembers(data.members || []);
+  renderMessages(data.messages || []);
+  renderItinerary(data.itinerary || []);
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(pollRoom, 3000);
+}
+
+function pollRoom() {
+  fetch("/api/room/" + roomId)
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.error) return;
+    renderMembers(d.members || []);
+    renderMessages(d.messages || []);
+    renderItinerary(d.itinerary || []);
+  })
+  .catch(function(e) {});
+}
+
+function sendMsg() {
+  var inp = document.getElementById("chat-input");
+  var text = inp.value.trim();
+  if (!text) return;
+  inp.value = "";
+  fetch("/api/room/" + roomId + "/message", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sender: myName, text: text })
+  }).catch(function(e) {});
+}
+
+function postSysMsg(text) {
+  fetch("/api/room/" + roomId + "/message", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sender: "System", text: text })
+  }).catch(function(e) {});
+}
+
+function renderMembers(members) {
+  var html = "";
+  for (var i = 0; i < members.length; i++) {
+    var m = members[i];
+    var cls = m === myName ? "mtag mtag-me" : "mtag";
+    html += '<span class="' + cls + '">' + m + (m === myName ? " (you)" : "") + "</span>";
+  }
+  document.getElementById("member-list").innerHTML = html;
+}
+
+function renderMessages(msgs) {
+  var c = document.getElementById("msg-area");
+  var atBottom = c.scrollHeight - c.clientHeight <= c.scrollTop + 60;
+  var html = "";
+  for (var i = 0; i < msgs.length; i++) {
+    var m = msgs[i];
+    var isMe = m.sender === myName;
+    var miCls = isMe ? "mi mi-me" : "mi";
+    var avCls = isMe ? "mav mav-me" : "mav";
+    var bubCls = isMe ? "mbub mbub-me" : "mbub";
+    var metaCls = isMe ? "mmeta mmeta-me" : "mmeta";
+    html += '<div class="' + miCls + '">';
+    if (!isMe) html += '<div class="' + avCls + '">' + m.sender.charAt(0).toUpperCase() + "</div>";
+    html += '<div><div class="' + bubCls + '">' + m.text + "</div>";
+    html += '<div class="' + metaCls + '">' + m.sender + " · " + m.ts + "</div></div>";
+    if (isMe) html += '<div class="' + avCls + '">' + m.sender.charAt(0).toUpperCase() + "</div>";
+    html += "</div>";
+  }
+  c.innerHTML = html;
+  if (atBottom) c.scrollTop = c.scrollHeight;
+}
+
+function renderItinerary(stops) {
+  var c = document.getElementById("itin-list");
+  if (!stops.length) {
+    c.innerHTML = '<div class="empty">No stops added yet</div>';
+    return;
+  }
+  var html = "";
+  for (var i = 0; i < stops.length; i++) {
+    var s = stops[i];
+    html += '<div class="iitem" id="si-' + s.id + '">';
+    html += '<div class="ii-info">';
+    html += '<div class="ii-day">' + s.day + (s.time ? " · " + s.time : "") + "</div>";
+    html += '<div class="ii-place">' + s.place + (s.city ? ", " + s.city : "") + "</div>";
+    if (s.note) html += '<div class="ii-by">' + s.note + "</div>";
+    html += '<div class="ii-by">Added by ' + s.added_by + "</div>";
+    html += "</div>";
+    html += '<button class="ii-del" data-id="' + s.id + '">x</button>';
+    html += "</div>";
+  }
+  c.innerHTML = html;
+  var dels = c.querySelectorAll(".ii-del");
+  for (var j = 0; j < dels.length; j++) {
+    dels[j].addEventListener("click", function() {
+      var sid = this.getAttribute("data-id");
+      if (!confirm("Remove this stop?")) return;
+      fetch("/api/room/" + roomId + "/itinerary/" + sid, { method: "DELETE" })
+      .catch(function(e) {});
+    });
+  }
+}
+</script>
+</body>
+</html>

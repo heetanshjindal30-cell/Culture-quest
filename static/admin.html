@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title id="page-title">TripQuests — Admin</title>
+<script src="/static/app.config.js"></script>
+<script>
+  // Apply branding as early as possible
+  document.addEventListener('DOMContentLoaded', function() {
+    const cfg = (typeof APP_CONFIG !== 'undefined') ? APP_CONFIG : {};
+    const name   = cfg.APP_NAME        || "TripQuests";
+    const suffix = cfg.APP_NAME_SUFFIX || "Quests";
+    const prefix = name.replace(suffix, "");
+    const label  = cfg.ADMIN_LABEL     || "ADMIN";
+    // page title
+    document.title = name + " — Admin";
+    // navbar brand
+    const brand = document.getElementById('nav-brand');
+    if (brand) brand.innerHTML = prefix + '<span>' + suffix + '</span> <small>' + label + '</small>';
+  });
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{--forest:#1a2e1a;--moss:#3d5c2e;--sage:#7a9e68;--sand:#e8dcc8;--cream:#f5f0e8;--terra:#c4622d;--gold:#d4a847;--ink:#1c1c1c;--mist:#f0ece4}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh}
+nav{background:#1a1a2e;padding:0 28px;display:flex;align-items:center;border-bottom:2px solid #2a2a4e;position:sticky;top:0;z-index:10}
+.brand{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--gold);margin-right:auto;padding:15px 0}
+.brand span{color:var(--sage);font-style:italic}
+.brand small{color:rgba(255,255,255,.3);font-size:.65rem;font-family:'DM Sans',sans-serif;margin-left:6px;background:rgba(255,255,255,.07);padding:2px 8px;border-radius:20px}
+.out{background:var(--terra);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:.78rem;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;display:inline-block}
+.out:hover{background:#a0481c}
+.body{max-width:900px;margin:0 auto;padding:36px 24px}
+.card{background:#fff;border-radius:14px;padding:26px;margin-bottom:22px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.card h3{font-family:'Playfair Display',serif;font-size:1rem;color:var(--forest);margin-bottom:6px}
+.desc{color:#888;font-size:.78rem;margin-bottom:18px;line-height:1.5}
+/* stats */
+.stats{display:flex;gap:14px;margin-bottom:22px}
+.sc{background:#fff;border-radius:12px;padding:18px 22px;flex:1;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.sc .n{font-family:'Playfair Display',serif;font-size:2rem;color:var(--forest);line-height:1}
+.sc .l{color:#aaa;font-size:.75rem;margin-top:4px}
+.sc.g .n{color:var(--terra)}
+/* upload */
+.zone{border:2px dashed var(--sand);border-radius:11px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;background:var(--mist)}
+.zone:hover,.zone.over{border-color:var(--moss);background:rgba(61,92,46,.05)}
+.zone .ic{font-size:1.8rem;margin-bottom:8px}
+.zone p{color:#888;font-size:.84rem}.zone strong{color:var(--moss)}
+#fi{display:none}
+.guide{background:var(--mist);border-radius:9px;padding:14px;font-size:.77rem;color:#555;line-height:1.9;margin-top:12px}
+.guide code{background:var(--forest);color:var(--gold);padding:1px 6px;border-radius:4px;font-size:.7rem}
+/* table */
+.preview{display:none;margin-top:14px}
+.tw{overflow-x:auto;border-radius:8px;border:1px solid var(--sand)}
+table{width:100%;border-collapse:collapse;font-size:.76rem}
+th{background:var(--forest);color:var(--gold);padding:9px 12px;text-align:left;font-weight:500;text-transform:uppercase;letter-spacing:.04em;font-size:.63rem;white-space:nowrap}
+td{padding:7px 12px;border-bottom:1px solid var(--sand);color:var(--ink);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:last-child td{border-bottom:none}tr:nth-child(even) td{background:var(--mist)}
+.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:.63rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.badge.gem{background:rgba(196,98,45,.12);color:var(--terra)}
+.badge.off{background:rgba(61,92,46,.12);color:var(--moss)}
+/* buttons */
+.btn{background:var(--forest);color:var(--gold);border:none;border-radius:9px;padding:11px 22px;font-family:'DM Sans',sans-serif;font-size:.82rem;cursor:pointer;transition:all .2s;margin-right:7px;margin-top:10px}
+.btn:hover{background:var(--moss)}
+/* pending */
+.plist{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+.pitem{background:var(--mist);border:1px solid var(--sand);border-left:3px solid var(--terra);border-radius:10px;padding:14px 16px;display:flex;gap:14px;align-items:flex-start}
+.pinfo{flex:1;min-width:0}
+.pn{font-weight:600;font-size:.9rem;color:var(--forest)}
+.pm{color:#888;font-size:.73rem;margin-top:3px}
+.pv{color:#555;font-size:.78rem;margin-top:5px;font-style:italic}
+.pd{color:#333;font-size:.78rem;margin-top:5px;line-height:1.5}
+.pf{color:var(--terra);font-size:.75rem;margin-top:5px}
+.pb{display:inline-block;background:rgba(212,168,71,.12);color:#8a6a10;font-size:.7rem;padding:2px 8px;border-radius:12px;margin-top:5px;font-weight:500}
+.pt{color:#999;font-size:.72rem;margin-top:4px}
+.pact{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.pact button{border:none;border-radius:7px;padding:8px 16px;font-size:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;white-space:nowrap}
+.ab{background:var(--moss);color:#fff}.ab:hover{background:#2a4020}
+.rb{background:#e8e8e8;color:#555}.rb:hover{background:#d0d0d0}
+.empty{text-align:center;padding:28px;color:#aaa;font-size:.84rem}
+.empty div{font-size:1.7rem;margin-bottom:5px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:4px}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand" id="nav-brand">Trip<span>Quests</span> <small>ADMIN</small></div>
+  <a href="/api/admin-logout" class="out">🔒 Logout</a>
+</nav>
+
+<div class="body">
+  <!-- Stats -->
+  <div class="stats">
+    <div class="sc"><div class="n" id="st-total">—</div><div class="l">Total Locations</div></div>
+    <div class="sc g"><div class="n" id="st-gems">—</div><div class="l">Hidden Gems</div></div>
+    <div class="sc"><div class="n" id="st-pend">—</div><div class="l">Pending Review</div></div>
+  </div>
+
+  <!-- Upload CSV -->
+  <div class="card">
+    <h3>📂 Upload Locations CSV</h3>
+    <p class="desc">Upload your master CSV to instantly update the chatbot. Existing approved local gems are preserved.</p>
+    <div class="zone" id="zone" onclick="document.getElementById('fi').click()"
+      ondragover="dOver(event)" ondragleave="dLeave(event)" ondrop="dDrop(event)">
+      <div class="ic">📋</div>
+      <p><strong>Click to upload</strong> or drag & drop your CSV here</p>
+      <p style="margin-top:5px;font-size:.72rem">Accepted: .csv files only</p>
+    </div>
+    <input type="file" id="fi" accept=".csv" onchange="uploadCSV(this)"/>
+
+    <div class="guide">
+      <strong>Your exact CSV column format:</strong><br/>
+      <code>City</code> &nbsp;·&nbsp; <code>Place Name</code> &nbsp;·&nbsp; <code>Category</code> &nbsp;·&nbsp;
+      <code>Vibe Description</code> &nbsp;·&nbsp; <code>Budget</code> &nbsp;·&nbsp;
+      <code>Best time to visit in each season</code> &nbsp;·&nbsp;
+      <code>type of location</code> &nbsp;·&nbsp; <code>detailed description</code> &nbsp;·&nbsp;
+      <code>food to try</code><br/><br/>
+      Set <code>type of location</code> to <code>local hidden gem</code> for hidden gems or <code>official</code> for mainstream spots.
+    </div>
+
+    <div class="preview" id="preview">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:12px 0 8px">
+        <strong id="pfname" style="font-size:.84rem;color:var(--forest)"></strong>
+        <span id="pfcount" style="color:#888;font-size:.74rem"></span>
+      </div>
+      <div class="tw"><table id="ptable"></table></div>
+    </div>
+  </div>
+
+  <!-- Pending -->
+  <div class="card">
+    <h3>📬 Pending Local Submissions</h3>
+    <p class="desc">Review gems submitted by locals via the public site. Approve to add instantly to live CSV, reject to discard.</p>
+    <div class="plist" id="plist"><div class="empty"><div>⏳</div>Loading…</div></div>
+  </div>
+
+  <!-- Export -->
+  <div class="card">
+    <h3>⬇️ Export CSV</h3>
+    <p class="desc">Download the full combined CSV — your uploaded data plus all approved local gems — in your exact column format.</p>
+    <button class="btn" onclick="window.location.href='/api/export-csv'">⬇️ Download CSV</button>
+  </div>
+</div>
+
+<script>
+const API = "";
+
+window.addEventListener('DOMContentLoaded', async () => {
+  await loadStats();
+  await loadPending();
+});
+
+async function loadStats() {
+  try {
+    const d = await fetch(`${API}/api/locations`).then(r=>r.json());
+    document.getElementById('st-total').textContent = d.total;
+    document.getElementById('st-gems').textContent  = d.hidden_gems;
+  } catch{}
+}
+
+async function loadPending() {
+  try {
+    const r = await fetch(`${API}/api/pending-gems`);
+    if (r.status===401){
+      document.getElementById('plist').innerHTML='<div class="empty"><div>🔒</div>Session expired. <a href="/admin">Login again</a></div>';
+      return;
+    }
+    const d = await r.json();
+    document.getElementById('st-pend').textContent = d.count;
+    renderPending(d.pending||[]);
+  } catch {
+    document.getElementById('plist').innerHTML='<div class="empty"><div>⚠️</div>Could not load submissions</div>';
+  }
+}
+
+function renderPending(list) {
+  const el = document.getElementById('plist');
+  if (!list.length){el.innerHTML='<div class="empty"><div>📭</div>No pending submissions — all caught up!</div>';return;}
+  el.innerHTML='';
+  list.forEach(g=>{
+    const name = g["Place Name"]||'';
+    const item = document.createElement('div');
+    item.className='pitem'; item.id='p-'+g.id;
+    item.innerHTML=`
+      <div class="pinfo">
+        <div class="pn">${name}</div>
+        <div class="pm">
+          📍 ${g["City"]||''} &nbsp;·&nbsp; 🏷️ ${g["Category"]||''} &nbsp;·&nbsp; 🕐 ${g.submitted_at||''}
+          ${g.submitter?` &nbsp;·&nbsp; 👤 ${g.submitter}`:''}
+          ${g.contact  ?` &nbsp;·&nbsp; 📞 ${g.contact}`  :''}
+        </div>
+        ${g["Vibe Description"]   ?`<div class="pv">✨ ${g["Vibe Description"]}</div>`:''}
+        ${g["detailed description"]?`<div class="pd">${g["detailed description"]}</div>`:''}
+        ${g["food to try"]        ?`<div class="pf">🍽️ Food to try: ${g["food to try"]}</div>`:''}
+        ${g["Budget"]             ?`<span class="pb">💰 ${g["Budget"]}</span>`:''}
+        ${g["Best time to visit in each season"]?`<div class="pt">🗓️ ${g["Best time to visit in each season"]}</div>`:''}
+      </div>
+      <div class="pact">
+        <button class="ab" onclick="approve('${g.id}','${name.replace(/'/g,"\\'")}')">✓ Approve</button>
+        <button class="rb" onclick="reject('${g.id}','${name.replace(/'/g,"\\'")}')">✕ Reject</button>
+      </div>`;
+    el.appendChild(item);
+  });
+}
+
+async function approve(id,name){
+  const r=await fetch(`${API}/api/approve-gem/${id}`,{method:'POST'});
+  const d=await r.json();
+  if(r.ok){
+    document.getElementById('p-'+id)?.remove();
+    loadStats();
+    alert('✅ '+d.message);
+    if(!document.querySelector('.pitem')) document.getElementById('plist').innerHTML='<div class="empty"><div>📭</div>No pending submissions</div>';
+  } else alert('Error: '+d.error);
+}
+
+async function reject(id,name){
+  if(!confirm(`Reject and delete "${name}"? Cannot be undone.`)) return;
+  const r=await fetch(`${API}/api/reject-gem/${id}`,{method:'POST'});
+  if(r.ok){
+    document.getElementById('p-'+id)?.remove();
+    const c=document.querySelectorAll('.pitem').length;
+    document.getElementById('st-pend').textContent=c;
+    if(!c) document.getElementById('plist').innerHTML='<div class="empty"><div>📭</div>No pending submissions</div>';
+  }
+}
+
+/* ── CSV upload ── */
+async function uploadCSV(input){
+  const file=input.files[0]; if(!file) return;
+  const fd=new FormData(); fd.append('csv_file',file);
+  try {
+    const r=await fetch(`${API}/api/upload-csv`,{method:'POST',body:fd});
+    const d=await r.json();
+    if(r.ok){
+      document.getElementById('pfname').textContent='✅ '+file.name;
+      document.getElementById('pfcount').textContent=`${d.count} locations loaded`;
+      renderPreview(d.preview);
+      document.getElementById('preview').style.display='block';
+      loadStats();
+      alert('✅ '+d.message);
+    } else alert('Error: '+d.error);
+  } catch { alert('Upload failed. Is the server running?'); }
+}
+
+function renderPreview(rows){
+  const cols=['Place Name','City','Category','Vibe Description','Budget','type of location'];
+  document.getElementById('ptable').innerHTML=
+    `<tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>`+
+    rows.map(row=>`<tr>${cols.map(c=>{
+      if(c==='type of location'){
+        const v=row[c]||'official';
+        const g=v.toLowerCase().includes('hidden')||v.toLowerCase().includes('local');
+        return `<td><span class="badge ${g?'gem':'off'}">${v}</span></td>`;
+      }
+      return `<td title="${row[c]||''}">${row[c]||'—'}</td>`;
+    }).join('')}</tr>`).join('');
+}
+
+function dOver(e){e.preventDefault();document.getElementById('zone').classList.add('over')}
+function dLeave(){document.getElementById('zone').classList.remove('over')}
+function dDrop(e){e.preventDefault();dLeave();const f=e.dataTransfer.files[0];if(f?.name.endsWith('.csv'))uploadCSV({files:[f]})}
+</script>
+</body>
+</html>
+<script>
+// Inject Users section after page loads
+window.addEventListener('DOMContentLoaded', async () => {
+  // Add users card
+  const body = document.querySelector('.body');
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <h3>👥 User Memory Log</h3>
+    <p class="desc">Every user who has chatted — their history, cities explored, and interests. All stored locally.</p>
+    <div id="ulist"><div class="empty"><div>⏳</div>Loading…</div></div>`;
+  body.appendChild(card);
+  await loadUsers();
+});
+
+async function loadUsers() {
+  try {
+    const d = await fetch('/api/admin/users').then(r => r.json());
+    const el = document.getElementById('ulist');
+    if (!d.users || !d.users.length) {
+      el.innerHTML = '<div class="empty"><div>📭</div>No users yet</div>'; return;
+    }
+    el.innerHTML = d.users.map(u => `
+      <div class="pitem" style="flex-direction:column;gap:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="pn">User <code style="font-size:.7rem;background:#eee;padding:1px 5px;border-radius:4px">${u.id}</code></div>
+            <div class="pm">Last seen: ${u.last_seen} &nbsp;·&nbsp; Messages: ${u.messages} &nbsp;·&nbsp; First visit: ${u.created}</div>
+          </div>
+          <button class="rb" onclick="clearUser('${u.id}')" style="padding:5px 12px;font-size:.72rem">Clear</button>
+        </div>
+        ${u.cities.length ? `<div class="pf">🗺️ Cities explored: <strong>${u.cities.join(', ')}</strong></div>` : ''}
+        ${u.interests.length ? `<div class="pf">💡 Interests: ${u.interests.join(' · ')}</div>` : ''}
+      </div>`).join('');
+  } catch {
+    document.getElementById('ulist').innerHTML = '<div class="empty"><div>⚠️</div>Could not load users</div>';
+  }
+}
+
+async function clearUser(uid) {
+  if (!confirm('Clear all history for this user?')) return;
+  await fetch(`/api/admin/users/${uid}/clear`, { method: 'POST' });
+  await loadUsers();
+}
+</script>

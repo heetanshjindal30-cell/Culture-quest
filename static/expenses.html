@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TripQuests — Trip Expense Splitter</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{--forest:#1a2e1a;--moss:#3d5c2e;--sage:#7a9e68;--sand:#e8dcc8;--cream:#f5f0e8;--terra:#c4622d;--gold:#d4a847;--ink:#1c1c1c;--mist:#f0ece4}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"DM Sans",sans-serif;background:var(--cream);min-height:100vh}
+nav{background:var(--forest);padding:0 20px;display:flex;align-items:center;gap:12px;border-bottom:2px solid var(--moss)}
+.brand{font-family:"Playfair Display",serif;font-size:1.15rem;color:var(--gold);padding:13px 0;margin-right:auto}
+.brand span{color:var(--sage);font-style:italic}
+.nav-a{color:rgba(255,255,255,.55);font-size:.72rem;text-decoration:none;padding:13px 0}
+.nav-a:hover{color:var(--gold)}
+.page{max-width:1000px;margin:0 auto;padding:28px 20px}
+.hero-bar{background:var(--forest);border-radius:12px;padding:20px 24px;display:flex;align-items:center;gap:16px;margin-bottom:20px}
+.hb-title{font-family:"Playfair Display",serif;color:var(--gold);font-size:1.1rem}
+.hb-sub{color:rgba(255,255,255,.42);font-size:.75rem;margin-top:2px}
+.room-inp{display:flex;gap:8px;margin-left:auto}
+.room-inp input{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:7px;padding:6px 11px;color:white;font-family:"DM Sans",sans-serif;font-size:.78rem;outline:none;width:140px;text-transform:uppercase;letter-spacing:.05em}
+.room-inp input::placeholder{color:rgba(255,255,255,.35);text-transform:none}
+.room-inp button{background:var(--gold);color:var(--forest);border:none;border-radius:7px;padding:6px 14px;cursor:pointer;font-family:"DM Sans",sans-serif;font-size:.78rem;font-weight:600}
+.grid{display:grid;grid-template-columns:1fr 340px;gap:16px}
+.card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.06);margin-bottom:16px}
+.card h3{font-family:"Playfair Display",serif;font-size:.95rem;color:var(--forest);margin-bottom:14px;padding-bottom:9px;border-bottom:1px solid var(--sand)}
+.fi{width:100%;border:1.5px solid var(--sand);border-radius:8px;padding:8px 11px;font-family:"DM Sans",sans-serif;font-size:.83rem;color:var(--ink);background:var(--mist);outline:none;margin-bottom:9px;transition:border-color .2s}
+.fi:focus{border-color:var(--moss);background:#fff}
+.btn{border:none;border-radius:8px;padding:10px 18px;font-family:"DM Sans",sans-serif;font-size:.83rem;font-weight:500;cursor:pointer;transition:all .2s}
+.btn.primary{background:var(--forest);color:var(--gold)}.btn.primary:hover{background:var(--moss)}
+.btn.danger{background:var(--terra);color:#fff}.btn.danger:hover{background:#a0481c}
+.btn.full{width:100%}
+/* Expenses list */
+.exp-list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.exp-item{background:var(--mist);border:1px solid var(--sand);border-radius:9px;padding:12px 14px}
+.ei-top{display:flex;align-items:center;gap:10px;margin-bottom:5px}
+.ei-desc{font-size:.87rem;font-weight:500;color:var(--forest);flex:1}
+.ei-amt{font-family:"Playfair Display",serif;font-size:1.1rem;color:var(--terra)}
+.ei-meta{color:#888;font-size:.72rem}
+.ei-split{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.split-tag{background:#fff;border:1px solid var(--sand);border-radius:20px;padding:2px 9px;font-size:.68rem;color:var(--moss)}
+.split-tag.settled{background:rgba(61,92,46,.1);border-color:var(--moss);color:var(--moss)}
+.settle-btn{background:var(--sage);color:#fff;border:none;border-radius:20px;padding:2px 9px;font-size:.65rem;cursor:pointer;margin-left:2px}
+.settle-btn:hover{background:var(--moss)}
+.empty-exp{color:#bbb;font-size:.78rem;text-align:center;padding:20px}
+/* Balances */
+.bal-list{display:flex;flex-direction:column;gap:8px}
+.bal-item{background:var(--mist);border-radius:8px;padding:10px 12px}
+.bi-row{display:flex;justify-content:space-between;align-items:center}
+.bi-name{font-size:.82rem;font-weight:500;color:var(--forest)}
+.bi-amt.pos{color:var(--moss);font-weight:600}
+.bi-amt.neg{color:var(--terra);font-weight:600}
+.bi-amt.zero{color:#aaa}
+.settle-row{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--sand);border-radius:8px;padding:8px 12px}
+.sr-text{font-size:.78rem;color:var(--ink);flex:1}
+.sr-amt{font-family:"Playfair Display",serif;color:var(--terra);font-size:.95rem;font-weight:600}
+/* Checkboxes for split */
+.members-check{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.mc{display:flex;align-items:center;gap:4px;background:var(--mist);border:1px solid var(--sand);border-radius:20px;padding:3px 10px;font-size:.75rem;cursor:pointer;transition:all .2s}
+.mc input{accent-color:var(--moss);cursor:pointer}
+.mc.checked{background:rgba(61,92,46,.1);border-color:var(--moss);color:var(--moss);font-weight:500}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:4px}
+.empty-state{text-align:center;padding:40px;color:#bbb}
+.empty-state div{font-size:2rem;margin-bottom:8px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.hero-bar{flex-direction:column;text-align:center}.room-inp{margin-left:0;width:100%}.room-inp input{flex:1}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand">Culture<span>Quest</span></div>
+  <a class="nav-a" href="/">← Planner</a>
+  <a class="nav-a" href="/collab">👥 Group Plan</a>
+</nav>
+<div class="page">
+  <div class="hero-bar">
+    <div>
+      <div class="hb-title">💰 Trip Expense Splitter</div>
+      <div class="hb-sub">Track who paid what and settle up fairly — no more mental math</div>
+    </div>
+    <div class="room-inp">
+      <input id="rc-inp" placeholder="Room code..."/>
+      <button onclick="loadRoom()">Load Room</button>
+    </div>
+  </div>
+
+  <div id="no-room" class="empty-state">
+    <div>💰</div>
+    <p>Enter a group room code above to load expenses,<br/>or go to <a href="/collab" style="color:var(--moss)">Group Plan</a> to create a room first.</p>
+  </div>
+
+  <div id="room-view" style="display:none">
+    <div class="grid">
+      <!-- Left: expenses -->
+      <div>
+        <div class="card">
+          <h3>➕ Add Expense</h3>
+          <input class="fi" id="e-desc"   placeholder="What was it? (e.g. Hotel, Lunch, Petrol)"/>
+          <input class="fi" id="e-amt"    placeholder="Amount (Rs.)" type="number" min="0" step="0.01"/>
+          <input class="fi" id="e-paidby" placeholder="Paid by (name)"/>
+          <div style="font-size:.72rem;color:var(--moss);text-transform:uppercase;letter-spacing:.06em;font-weight:500;margin-bottom:6px">Split among:</div>
+          <div class="members-check" id="split-checks"></div>
+          <button class="btn primary full" onclick="addExpense()">Add Expense</button>
+        </div>
+        <div class="card">
+          <h3>📋 All Expenses</h3>
+          <div class="exp-list" id="exp-list"><div class="empty-exp">No expenses yet</div></div>
+        </div>
+      </div>
+      <!-- Right: balances -->
+      <div>
+        <div class="card">
+          <h3>⚖️ Who Owes What</h3>
+          <div class="bal-list" id="bal-net"></div>
+        </div>
+        <div class="card">
+          <h3>✅ Settlements</h3>
+          <p style="color:#999;font-size:.75rem;margin-bottom:12px">Minimum transactions to clear all debts</p>
+          <div id="settlements"></div>
+        </div>
+        <div class="card">
+          <h3>📊 Trip Summary</h3>
+          <div id="trip-summary"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const A="";
+let rid="",members=[];
+
+async function loadRoom(){
+  const code=document.getElementById("rc-inp").value.trim().toUpperCase();
+  if(!code){alert("Enter a room code.");return;}
+  try{
+    const d=await fetch(A+"/api/room/"+code).then(r=>r.json());
+    if(d.error){alert("Room not found: "+code);return;}
+    rid=code; members=d.members||[];
+    document.getElementById("no-room").style.display="none";
+    document.getElementById("room-view").style.display="block";
+    renderSplitChecks();
+    await refreshAll();
+    setInterval(refreshAll,5000);
+  }catch(e){alert("Could not connect to server.");}
+}
+
+function renderSplitChecks(){
+  document.getElementById("split-checks").innerHTML=members.map(m=>
+    "<label class=\"mc\" id=\"mc-"+m+"\" onclick=\"toggleMC(this)\"><input type=\"checkbox\" value=\""+m+"\" checked/> "+m+"</label>"
+  ).join("");
+}
+
+function toggleMC(el){
+  setTimeout(()=>el.classList.toggle("checked",el.querySelector("input").checked),0);
+}
+
+async function addExpense(){
+  const desc=document.getElementById("e-desc").value.trim();
+  const amt=parseFloat(document.getElementById("e-amt").value)||0;
+  const paid=document.getElementById("e-paidby").value.trim();
+  const split=Array.from(document.querySelectorAll("#split-checks input:checked")).map(i=>i.value);
+  if(!desc||!amt||!paid||!split.length){alert("Fill all fields and select who to split with.");return;}
+  try{
+    await fetch(A+"/api/room/"+rid+"/expense",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({paid_by:paid,description:desc,amount:amt,split_among:split})});
+    ["e-desc","e-amt","e-paidby"].forEach(id=>document.getElementById(id).value="");
+    await refreshAll();
+  }catch(e){alert("Failed to add expense.");}
+}
+
+async function settleExpense(eid,member){
+  try{await fetch(A+"/api/room/"+rid+"/expense/"+eid+"/settle",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({member})});await refreshAll();}catch(e){}
+}
+
+async function refreshAll(){
+  try{
+    const [room,balData]=await Promise.all([fetch(A+"/api/room/"+rid).then(r=>r.json()),fetch(A+"/api/room/"+rid+"/balances").then(r=>r.json())]);
+    if(room.members) members=room.members;
+    renderExpenses(room.expenses||[]);
+    renderBalances(balData);
+  }catch(e){}
+}
+
+function renderExpenses(exps){
+  const c=document.getElementById("exp-list");
+  if(!exps.length){c.innerHTML="<div class=\"empty-exp\">No expenses yet</div>";return;}
+  c.innerHTML=exps.map(exp=>{
+    const splitTags=exp.split_among.map(m=>{
+      const settled=exp.settled&&exp.settled.includes(m);
+      const isPayer=m===exp.paid_by;
+      if(isPayer) return "<span class=\"split-tag settled\">"+m+" (paid)</span>";
+      if(settled) return "<span class=\"split-tag settled\">"+m+" ✓</span>";
+      return "<span class=\"split-tag\">"+m+" owes Rs."+exp.per_person+"</span><button class=\"settle-btn\" onclick=\"settleExpense(\'"+exp.id+"\',\'"+m+"\')\">Mark paid</button>";
+    }).join("");
+    return "<div class=\"exp-item\"><div class=\"ei-top\"><div class=\"ei-desc\">"+exp.description+"</div><div class=\"ei-amt\">Rs. "+exp.amount+"</div></div><div class=\"ei-meta\">Paid by <strong>"+exp.paid_by+"</strong> · Rs."+exp.per_person+" each · "+exp.ts+"</div><div class=\"ei-split\">"+splitTags+"</div></div>";
+  }).join("");
+}
+
+function renderBalances(data){
+  const net=data.net||{}, setts=data.settlements||[];
+  const nc=document.getElementById("bal-net");
+  nc.innerHTML=Object.entries(net).map(([m,v])=>{
+    const cls=v>0.01?"pos":v<-0.01?"neg":"zero";
+    const label=v>0.01?"gets back Rs."+Math.abs(v).toFixed(2):v<-0.01?"owes Rs."+Math.abs(v).toFixed(2):"settled up";
+    return "<div class=\"bal-item\"><div class=\"bi-row\"><div class=\"bi-name\">"+m+"</div><div class=\"bi-amt "+cls+"\">"+label+"</div></div></div>";
+  }).join("");
+  const sc=document.getElementById("settlements");
+  if(!setts.length){sc.innerHTML="<div style=\"color:#bbb;font-size:.78rem;text-align:center;padding:12px\">All settled up! 🎉</div>";return;}
+  sc.innerHTML=setts.map(s=>"<div class=\"settle-row\"><div class=\"sr-text\">"+s.from+" pays "+s.to+"</div><div class=\"sr-amt\">Rs. "+s.amount.toFixed(2)+"</div></div>").join("");
+  const total=Object.values(data.net||{}).filter(v=>v>0).reduce((a,b)=>a+b,0);
+  document.getElementById("trip-summary").innerHTML="<div style=\"font-size:.8rem;color:#666;line-height:1.8\"><div>Total trip spend: <strong>Rs. "+total.toFixed(2)+"</strong></div><div>Members: <strong>"+Object.keys(net).length+"</strong></div><div>Share per person: <strong>Rs. "+(total/Math.max(Object.keys(net).length,1)).toFixed(2)+"</strong></div></div>";
+}
+</script>
+</body>
+</html>

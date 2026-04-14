@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CultureQuest</title>
+<script src="/static/app.config.js?v=2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<!-- MapLibre GL JS (used with AWS Location Service) -->
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css"/>
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+<style>
+:root{--forest:#1a2e1a;--moss:#3d5c2e;--sage:#7a9e68;--sand:#e8dcc8;--cream:#f5f0e8;--terra:#c4622d;--gold:#d4a847;--ink:#1c1c1c;--mist:#f0ece4;--white:#fff}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;overflow-x:hidden}
+.app{display:flex;flex-direction:column;height:100vh}
+/* NAV */
+nav{background:var(--forest);padding:0 18px;display:flex;align-items:center;border-bottom:2px solid var(--moss);flex-shrink:0;gap:3px}
+.brand{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--gold);margin-right:auto;padding:14px 0}
+.brand span{color:var(--sage);font-style:italic}
+.tab{background:none;border:none;color:rgba(255,255,255,.5);font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:500;letter-spacing:.07em;text-transform:uppercase;padding:15px 12px;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap}
+.tab:hover{color:var(--sand)}.tab.on{color:var(--gold);border-bottom-color:var(--gold)}
+.nav-a{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.75);font-family:'DM Sans',sans-serif;font-size:.68rem;padding:5px 11px;border-radius:20px;text-decoration:none;transition:all .2s;white-space:nowrap}
+.nav-a:hover{background:var(--gold);color:var(--forest);border-color:var(--gold)}
+/* PANELS */
+.panel{display:none;flex:1;overflow:hidden}.panel.on{display:flex}
+#chat-panel{flex-direction:row}
+/* HISTORY SIDEBAR */
+.hist-sb{width:220px;background:#111c11;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;border-right:1px solid rgba(255,255,255,.06);transition:width .25s ease}
+.hist-sb.collapsed{width:36px}
+.hist-sb.collapsed .hist-list,.hist-sb.collapsed .hist-new-btn{display:none}
+.hist-toggle{position:absolute;top:50%;transform:translateY(-50%);right:6px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:rgba(255,255,255,.6);width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.7rem;flex-shrink:0;transition:all .2s}
+.hist-toggle:hover{background:rgba(212,168,71,.2);color:var(--gold)}
+.hist-top{padding:10px 10px 6px;flex-shrink:0;position:relative;display:flex;align-items:center;gap:6px}
+.hist-new-btn{flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:8px;color:rgba(255,255,255,.7);font-family:'DM Sans',sans-serif;font-size:.72rem;padding:7px 10px;cursor:pointer;text-align:left;transition:all .2s}
+.hist-new-btn:hover{background:rgba(212,168,71,.15);color:var(--gold)}
+.hist-sb.collapsed .hist-top{justify-content:center;padding:10px 6px}
+.hist-sb.collapsed .hist-toggle{position:static;transform:none}
+.hist-list{flex:1;overflow-y:auto;padding:4px 6px}
+.hist-item{padding:7px 8px;border-radius:7px;cursor:pointer;transition:all .2s;margin-bottom:2px}
+.hist-item:hover{background:rgba(255,255,255,.07)}
+.hist-item.active{background:rgba(212,168,71,.12);border:1px solid rgba(212,168,71,.2)}
+.hi-title{color:rgba(255,255,255,.75);font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hi-date{color:rgba(255,255,255,.28);font-size:.6rem;margin-top:1px}
+.hist-empty{color:rgba(255,255,255,.2);font-size:.68rem;text-align:center;padding:20px 10px;line-height:1.6}
+/* MAIN SIDEBAR */
+.sb{width:260px;background:var(--forest);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.sb-in{display:flex;flex-direction:column;height:100%;overflow-y:auto;padding:11px 10px;gap:8px}
+.lbl{color:var(--gold);font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;margin-bottom:4px}
+.lang-w,.ww,.dw,.rw{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:8px 10px;flex-shrink:0}
+.lang-sel{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:7px;padding:5px 8px;color:white;font-family:'DM Sans',sans-serif;font-size:.72rem;outline:none;cursor:pointer}
+.lang-sel option{background:#1a2e1a;color:white}
+/* action buttons row */
+.action-row{display:flex;gap:5px;flex-shrink:0}
+.act-btn{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:rgba(255,255,255,.8);font-family:'DM Sans',sans-serif;font-size:.65rem;padding:7px 4px;cursor:pointer;transition:all .2s;text-align:center;line-height:1.3}
+.act-btn:hover{background:var(--gold);color:var(--forest);border-color:var(--gold)}
+/* weather / distance */
+.ws{display:flex;gap:4px;margin-bottom:5px}
+.ws input,.di input{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:5px 7px;color:white;font-family:'DM Sans',sans-serif;font-size:.7rem;outline:none}
+.ws input{flex:1}.di input{width:100%}
+.ws input::placeholder,.di input::placeholder{color:rgba(255,255,255,.3)}
+.ws button,.db{background:var(--gold);border:none;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:.68rem;color:var(--forest);font-weight:700}
+.di{display:flex;flex-direction:column;gap:4px;margin-bottom:5px}
+.db{width:100%;padding:5px;font-family:'DM Sans',sans-serif;font-size:.7rem}
+.db:hover{background:#b8922e}
+.w-res{display:none}.w-main{display:flex;align-items:center;gap:6px}
+.w-icon{width:32px;height:32px}.w-temp{font-family:'Playfair Display',serif;font-size:1.25rem;color:white}
+.w-city{color:var(--gold);font-size:.7rem;font-weight:500}.w-cond{color:rgba(255,255,255,.5);font-size:.63rem}
+.w-dets{display:flex;gap:5px;margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.08)}
+.w-det{color:rgba(255,255,255,.38);font-size:.58rem;text-align:center;flex:1}
+.w-det strong{display:block;color:rgba(255,255,255,.7);font-size:.64rem}
+.w-err,.d-err{color:rgba(255,255,255,.38);font-size:.66rem;text-align:center;padding:2px;display:none}
+.d-res{display:none;margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,.08)}
+.d-row{display:flex;justify-content:space-between;align-items:center}
+.d-km{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--gold)}
+.d-time{color:rgba(255,255,255,.55);font-size:.68rem}
+.d-route{color:rgba(255,255,255,.28);font-size:.6rem;margin-top:1px}
+/* recs */
+.r-list{display:flex;flex-direction:column;gap:4px;margin-top:3px}
+.rc{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:6px 8px;cursor:pointer;transition:all .2s}
+.rc:hover{background:rgba(212,168,71,.12);border-color:rgba(212,168,71,.4)}.rc.gc{border-left:2px solid var(--terra)}
+.r-nm{color:var(--sand);font-size:.76rem;font-weight:500}
+.r-cy{color:rgba(255,255,255,.32);font-size:.62rem}
+.r-rs{color:rgba(255,255,255,.22);font-size:.58rem;margin-top:1px;font-style:italic}
+.r-bd{display:inline-block;font-size:.54rem;padding:1px 4px;border-radius:9px;margin-top:1px;text-transform:uppercase;color:#fff}
+.r-bd.gem{background:var(--terra)}.r-bd.off{background:var(--moss)}
+.r-em{color:rgba(255,255,255,.2);font-size:.68rem;text-align:center;padding:7px 0;line-height:1.5}
+.r-ht{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+.rht{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:1px 6px;font-size:.58rem;color:rgba(255,255,255,.35)}
+.rc-btn{background:none;border:none;color:rgba(255,255,255,.2);font-size:.58rem;cursor:pointer;margin-top:3px;padding:0;font-family:'DM Sans',sans-serif;text-decoration:underline;display:none;width:100%;text-align:right}
+.s-ttl{font-family:'Playfair Display',serif;color:var(--gold);font-size:.84rem;margin-top:1px}
+.s-sub{color:rgba(255,255,255,.34);font-size:.63rem;line-height:1.5}
+.gl{display:flex;flex-direction:column;gap:5px}
+.chip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:6px 8px;cursor:pointer;transition:all .2s}
+.chip:hover{background:rgba(212,168,71,.15);border-color:var(--gold)}
+.cn{color:var(--sand);font-size:.76rem;font-weight:500}
+.cc{color:rgba(255,255,255,.3);font-size:.64rem;margin-top:1px}
+.cv{color:rgba(255,255,255,.17);font-size:.62rem;margin-top:1px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cb{color:var(--gold);font-size:.62rem;margin-top:1px}
+.cbadge{display:inline-block;padding:1px 4px;border-radius:9px;margin-top:2px;text-transform:uppercase;color:#fff;font-size:.54rem}
+.cbadge.gem{background:var(--terra)}.cbadge.off{background:var(--moss)}
+.ss{padding-top:8px;border-top:1px solid rgba(255,255,255,.08);flex-shrink:0}
+.st{display:flex;justify-content:space-between;color:rgba(255,255,255,.33);font-size:.64rem;padding:1px 0}
+.st span:last-child{color:var(--sage);font-weight:500}
+/* CHAT MAIN */
+.chat-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.c-head{background:var(--white);padding:11px 18px;border-bottom:1px solid rgba(0,0,0,.08);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.c-av{width:34px;height:34px;background:var(--forest);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.c-meta h3{font-family:'Playfair Display',serif;font-size:.9rem;color:var(--forest)}
+.c-meta p{font-size:.66rem;color:var(--sage)}
+.c-actions{margin-left:auto;display:flex;gap:6px}
+.c-act{background:var(--mist);border:1px solid var(--sand);border-radius:8px;padding:4px 10px;font-size:.68rem;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--moss);transition:all .2s}
+.c-act:hover{background:var(--forest);color:var(--gold);border-color:var(--forest)}
+.dot{width:7px;height:7px;background:#4caf50;border-radius:50%;box-shadow:0 0 5px rgba(76,175,80,.5);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:11px;background:var(--mist)}
+.msg{display:flex;gap:8px;max-width:78%;animation:up .3s ease}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg.u{margin-left:auto;flex-direction:row-reverse}
+.m-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;flex-shrink:0}
+.msg.b .m-av{background:var(--forest);color:var(--gold)}.msg.u .m-av{background:var(--terra);color:#fff}
+.bub{background:#fff;padding:9px 13px;border-radius:14px;border-top-left-radius:3px;font-size:.84rem;line-height:1.65;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.msg.u .bub{background:var(--forest);color:var(--sand);border-top-left-radius:14px;border-top-right-radius:3px}
+/* msg action buttons */
+.msg-actions{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+.ma{background:var(--mist);border:1px solid var(--sand);border-radius:20px;padding:3px 9px;font-size:.63rem;cursor:pointer;color:var(--moss);font-family:'DM Sans',sans-serif;transition:all .2s}
+.ma:hover{background:var(--forest);color:var(--gold);border-color:var(--forest)}
+.ma.saved{background:var(--moss);color:#fff;border-color:var(--moss)}
+/* review stars */
+.stars{display:flex;gap:3px;margin:4px 0}
+.star{font-size:1rem;cursor:pointer;color:#ddd;transition:color .15s}
+.star.on{color:var(--gold)}
+.verify-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(61,92,46,.1);border:1px solid var(--moss);border-radius:20px;padding:2px 8px;font-size:.62rem;color:var(--moss);font-weight:600}
+/* typing */
+.typing{display:flex;gap:3px;align-items:center;padding:3px 0}
+.td{width:5px;height:5px;background:var(--sage);border-radius:50%;animation:tb 1.2s infinite}
+.td:nth-child(2){animation-delay:.2s}.td:nth-child(3){animation-delay:.4s}
+@keyframes tb{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.chips-row{display:flex;flex-wrap:wrap;gap:5px;padding:6px 16px;background:#fff;border-top:1px solid var(--sand)}
+.sc{background:var(--mist);border:1px solid var(--sand);border-radius:20px;padding:4px 10px;font-size:.7rem;cursor:pointer;transition:all .2s;color:var(--moss);font-family:'DM Sans',sans-serif}
+.sc:hover{background:var(--forest);color:var(--gold);border-color:var(--forest)}
+.inp-row{background:#fff;padding:11px 16px;border-top:1px solid rgba(0,0,0,.08);display:flex;gap:8px;align-items:flex-end;flex-shrink:0}
+#ci{flex:1;border:1.5px solid var(--sand);border-radius:11px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:.84rem;background:var(--mist);color:var(--ink);resize:none;outline:none;max-height:100px;transition:border-color .2s}
+#ci:focus{border-color:var(--moss);background:#fff}
+#sb{background:var(--forest);border:none;color:var(--gold);width:38px;height:38px;border-radius:10px;cursor:pointer;font-size:1rem;transition:all .2s;flex-shrink:0}
+#sb:hover{background:var(--moss)}#sb:disabled{opacity:.5;cursor:not-allowed}
+/* MAP PANEL */
+#map-panel{flex-direction:column}
+#map{flex:1;min-height:0}
+.map-bar{background:var(--forest);padding:8px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.map-bar input{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:7px;padding:6px 10px;color:white;font-family:'DM Sans',sans-serif;font-size:.78rem;outline:none;width:200px}
+.map-bar input::placeholder{color:rgba(255,255,255,.4)}
+.map-bar button{background:var(--gold);border:none;border-radius:7px;padding:6px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.75rem;color:var(--forest);font-weight:600}
+/* COMPARE PANEL */
+#compare-panel{flex-direction:column;overflow-y:auto;background:var(--cream)}
+.cmp-wrap{max-width:700px;margin:0 auto;padding:28px 20px;width:100%}
+.cmp-card{background:#fff;border-radius:14px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,.06);margin-bottom:16px}
+.cmp-card h3{font-family:'Playfair Display',serif;font-size:1rem;color:var(--forest);margin-bottom:14px}
+.cmp-row{display:flex;gap:10px;margin-bottom:10px}
+.cmp-row input{flex:1;border:1.5px solid var(--sand);border-radius:8px;padding:8px 11px;font-family:'DM Sans',sans-serif;font-size:.84rem;background:var(--mist);outline:none;transition:border-color .2s}
+.cmp-row input:focus{border-color:var(--moss);background:#fff}
+.cmp-row select{border:1.5px solid var(--sand);border-radius:8px;padding:8px 11px;font-family:'DM Sans',sans-serif;font-size:.84rem;background:var(--mist);outline:none}
+.cmp-btn{background:var(--forest);color:var(--gold);border:none;border-radius:9px;padding:11px 22px;font-family:'DM Sans',sans-serif;font-size:.82rem;cursor:pointer;transition:all .2s}
+.cmp-btn:hover{background:var(--moss)}
+#cmp-result{background:var(--mist);border-radius:10px;padding:16px;font-size:.84rem;line-height:1.7;display:none;margin-top:14px;white-space:pre-wrap}
+/* TRIPS PANEL */
+#trips-panel{flex-direction:column;overflow-y:auto;background:var(--cream)}
+.trips-wrap{max-width:700px;margin:0 auto;padding:28px 20px;width:100%}
+.trip-card{background:#fff;border-radius:12px;padding:18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);display:flex;align-items:flex-start;gap:12px}
+.trip-body{flex:1;min-width:0}
+.trip-title{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--forest);margin-bottom:4px}
+.trip-preview{color:#888;font-size:.76rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trip-date{color:#bbb;font-size:.68rem;margin-top:4px}
+.trip-actions{display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+.trip-btn{border:none;border-radius:7px;padding:5px 12px;font-size:.7rem;cursor:pointer;font-family:'DM Sans',sans-serif}
+.trip-btn.share{background:var(--moss);color:#fff}
+.trip-btn.del{background:#f0e8e8;color:var(--terra)}
+.share-link{background:var(--mist);border:1px solid var(--sand);border-radius:8px;padding:8px 12px;font-size:.72rem;color:var(--moss);margin-top:6px;word-break:break-all;display:none}
+/* SUB PANEL */
+#sub-panel{flex-direction:column;overflow-y:auto;background:var(--cream)}
+.hero{background:var(--forest);padding:38px 38px 30px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 60% 40%,rgba(122,158,104,.2) 0%,transparent 60%)}
+.hero h1{font-family:'Playfair Display',serif;font-size:1.85rem;color:var(--gold);position:relative}
+.hero h1 em{color:var(--sage);font-style:italic}
+.hero p{color:rgba(255,255,255,.46);font-size:.84rem;margin-top:8px;position:relative;max-width:440px;margin-left:auto;margin-right:auto;line-height:1.6}
+.fwrap{max-width:620px;margin:0 auto;padding:28px 20px;width:100%}
+.fsec{background:#fff;border-radius:12px;padding:20px;margin-bottom:14px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.fsec h3{font-family:'Playfair Display',serif;font-size:.9rem;color:var(--forest);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--sand)}
+.frow{display:flex;gap:12px}
+.fg{display:flex;flex-direction:column;gap:4px;flex:1;margin-bottom:12px}
+label{font-size:.7rem;font-weight:500;color:var(--moss);text-transform:uppercase;letter-spacing:.06em}
+input.fi,select.fi,textarea.fi{border:1.5px solid var(--sand);border-radius:8px;padding:8px 11px;font-family:'DM Sans',sans-serif;font-size:.84rem;color:var(--ink);background:var(--mist);outline:none;transition:border-color .2s;width:100%}
+input.fi:focus,select.fi:focus,textarea.fi:focus{border-color:var(--moss);background:#fff}
+textarea.fi{resize:vertical;min-height:78px}
+.sbtn{width:100%;background:var(--terra);color:#fff;border:none;border-radius:10px;padding:13px;font-family:'DM Sans',sans-serif;font-size:.86rem;font-weight:500;cursor:pointer;transition:all .2s}
+.sbtn:hover{background:var(--forest)}.sbtn:disabled{opacity:.6;cursor:not-allowed}
+.toast{display:none;padding:11px 15px;border-radius:9px;font-size:.8rem;margin-top:12px;text-align:center}
+.toast.ok{background:var(--moss);color:#fff}.toast.err{background:var(--terra);color:#fff}
+/* modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+.modal-bg.on{display:flex}
+.modal{background:#fff;border-radius:16px;padding:24px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto}
+.modal h3{font-family:'Playfair Display',serif;color:var(--forest);margin-bottom:12px}
+.modal-close{float:right;background:none;border:none;font-size:1.2rem;cursor:pointer;color:#aaa}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:4px}
+@media(max-width:640px){.sb{display:none}.hist-sb{display:none}.frow{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav>
+    <div class="brand" id="nav-brand">Culture<span>Quest</span></div>
+    <button class="tab on"  onclick="switchTab('chat',this)">🗺️ Plan Trip</button>
+    <button class="tab"     onclick="switchTab('map',this)">📍 Map</button>
+    <button class="tab"     onclick="switchTab('compare',this)">⚖️ Compare</button>
+    <button class="tab"     onclick="switchTab('trips',this)">🔖 Saved</button>
+    <button class="tab"     onclick="switchTab('sub',this)">➕ Add Gem</button>
+    <a class="nav-a" href="/collab" target="_blank">👥 Group</a>
+    <a class="nav-a" href="/expenses" target="_blank">💰 Split</a>
+  </nav>
+
+  <!-- ── CHAT PANEL ── -->
+  <div id="chat-panel" class="panel on">
+    <!-- History sidebar -->
+    <div class="hist-sb" id="hist-sb">
+      <div class="hist-top">
+        <button class="hist-new-btn" id="hist-new-btn" onclick="newChat()">✏️ New Chat</button>
+        <button class="hist-toggle" id="hist-toggle" onclick="toggleHistSidebar()" title="Toggle sidebar">‹</button>
+      </div>
+      <div class="hist-list" id="hist-list">
+        <div class="hist-empty">Your past chats will appear here</div>
+      </div>
+    </div>
+
+    <!-- Main sidebar -->
+    <aside class="sb">
+      <div class="sb-in">
+        <div class="lang-w">
+          <div class="lbl">🌐 Language / भाषा</div>
+          <select class="lang-sel" id="lang-sel" onchange="setLang(this.value)">
+            <option value="English">English</option>
+            <option value="Hindi">हिंदी (Hindi)</option>
+            <option value="Punjabi">ਪੰਜਾਬੀ (Punjabi)</option>
+            <option value="Bengali">বাংলা (Bengali)</option>
+            <option value="Tamil">தமிழ் (Tamil)</option>
+            <option value="Telugu">తెలుగు (Telugu)</option>
+            <option value="Marathi">मराठी (Marathi)</option>
+            <option value="Gujarati">ગુજરાતી (Gujarati)</option>
+            <option value="Kannada">ಕನ್ನಡ (Kannada)</option>
+            <option value="French">Français</option>
+            <option value="Spanish">Español</option>
+            <option value="German">Deutsch</option>
+            <option value="Arabic">العربية</option>
+            <option value="Japanese">日本語</option>
+          </select>
+        </div>
+        <!-- Action buttons -->
+        <div class="action-row">
+          <button class="act-btn" onclick="surpriseMe()">🎲<br>Surprise Me</button>
+          <button class="act-btn" onclick="switchTab('compare',document.querySelectorAll('.tab')[2])">⚖️<br>Compare</button>
+          <button class="act-btn" onclick="switchTab('map',document.querySelectorAll('.tab')[1])">🗺️<br>Map</button>
+        </div>
+        <div class="ww">
+          <div class="lbl">🌤️ Live Weather</div>
+          <div class="ws"><input id="w-city" placeholder="City name..." onkeydown="if(event.key==='Enter')fetchW()"/><button onclick="fetchW()">Go</button></div>
+          <div class="w-res" id="w-res">
+            <div class="w-main"><img class="w-icon" id="w-icon" src="" alt=""/><div><div class="w-temp" id="w-temp"></div></div><div><div class="w-city" id="w-name"></div><div class="w-cond" id="w-cond"></div></div></div>
+            <div class="w-dets"><div class="w-det"><strong id="w-hum"></strong>Humidity</div><div class="w-det"><strong id="w-wnd"></strong>Wind</div><div class="w-det"><strong id="w-fl"></strong>Feels</div></div>
+          </div>
+          <div class="w-err" id="w-err">City not found</div>
+        </div>
+        <div class="dw">
+          <div class="lbl">🚗 Distance</div>
+          <div class="di"><input id="d-from" placeholder="From city..." onkeydown="if(event.key==='Enter')fetchD()"/><input id="d-to" placeholder="To city..." onkeydown="if(event.key==='Enter')fetchD()"/></div>
+          <button class="db" onclick="fetchD()">Calculate Route</button>
+          <div class="d-res" id="d-res"><div class="d-row"><div class="d-km" id="d-km"></div><div class="d-time" id="d-time"></div></div><div class="d-route" id="d-route"></div></div>
+          <div class="d-err" id="d-err">Could not calculate</div>
+        </div>
+        <div class="rw">
+          <div class="lbl">✨ For You</div>
+          <div class="r-list" id="r-list"><div class="r-em">Browse places to get recommendations</div></div>
+          <div class="r-ht" id="r-ht"></div>
+          <button class="rc-btn" id="rc-btn" onclick="clearH()">Clear history</button>
+        </div>
+        <div><div class="s-ttl">All Locations</div><div class="s-sub">Click any place to explore.</div></div>
+        <div class="gl" id="gl"><div style="color:rgba(255,255,255,.28);font-size:.7rem;padding:6px 0">Loading...</div></div>
+        <div class="ss">
+          <div class="st"><span>Total</span><span id="s-t">-</span></div>
+          <div class="st"><span>Hidden gems</span><span id="s-g">-</span></div>
+          <div class="st"><span>Official</span><span id="s-o">-</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Chat main -->
+    <div class="chat-main">
+      <div class="c-head">
+        <div class="c-av">🌿</div>
+        <div class="c-meta"><h3 id="chat-header-name">CultureQuest AI</h3><p id="chat-header-sub">Groq · Multilingual · Weather · Distances · Personalised</p></div>
+        <div class="c-actions">
+          <button class="c-act" onclick="switchTab('trips',document.querySelectorAll('.tab')[3])">🔖 Saved Trips</button>
+        </div>
+        <div class="dot"></div>
+      </div>
+      <div class="msgs" id="msgs"></div>
+      <div class="chips-row">
+        <span class="sc" onclick="sug(this)">🎲 Surprise me!</span>
+        <span class="sc" onclick="sug(this)">3-day trip to Punjab</span>
+        <span class="sc" onclick="sug(this)">Weekend from Delhi</span>
+        <span class="sc" onclick="sug(this)">Hidden cafes</span>
+        <span class="sc" onclick="sug(this)">Budget trip</span>
+        <span class="sc" onclick="sug(this)">Best in winter</span>
+      </div>
+      <div class="inp-row">
+        <textarea id="ci" rows="1" placeholder="Ask in any language — plan trips, find hidden gems..." onkeydown="onKey(event)" oninput="resize(this)"></textarea>
+        <button id="sb" onclick="send()">↑</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MAP PANEL ── -->
+  <div id="map-panel" class="panel">
+    <div class="map-bar">
+      <input id="map-filter" placeholder="Filter by city..." oninput="filterMap(this.value)"/>
+      <button onclick="filterMap(document.getElementById('map-filter').value)">Show</button>
+      <button onclick="filterMap('')" style="background:rgba(255,255,255,.15);color:white;border:none;border-radius:7px;padding:6px 14px;cursor:pointer;font-size:.75rem">All</button>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <!-- ── COMPARE PANEL ── -->
+  <div id="compare-panel" class="panel">
+    <div class="cmp-wrap">
+      <div class="cmp-card">
+        <h3>⚖️ Compare Two Destinations</h3>
+        <div class="cmp-row">
+          <input id="cmp-c1" placeholder="City 1 (e.g. Jaipur)"/>
+          <input id="cmp-c2" placeholder="City 2 (e.g. Udaipur)"/>
+          <select id="cmp-days"><option value="2">2 days</option><option value="3" selected>3 days</option><option value="4">4 days</option><option value="5">5 days</option></select>
+        </div>
+        <button class="cmp-btn" onclick="doCompare()">Compare ⚖️</button>
+        <div id="cmp-result"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SAVED TRIPS PANEL ── -->
+  <div id="trips-panel" class="panel">
+    <div class="trips-wrap">
+      <h2 style="font-family:'Playfair Display',serif;color:var(--forest);margin-bottom:18px">🔖 Your Saved Trips</h2>
+      <div id="trips-list"><div style="color:#aaa;font-size:.84rem;text-align:center;padding:40px">No saved trips yet.<br>Save any AI response using the 💾 button in chat.</div></div>
+    </div>
+  </div>
+
+  <!-- ── ADD GEM PANEL ── -->
+  <div id="sub-panel" class="panel">
+    <div class="hero"><h1>Share a <em>Hidden Gem</em></h1><p>Know a secret spot tourists never find? Add it and help travelers discover the real local experience.</p></div>
+    <div class="fwrap">
+      <div class="fsec"><h3>📍 Basic Info</h3>
+        <div class="frow"><div class="fg"><label>Place Name *</label><input class="fi" id="f-name" placeholder="e.g. Chai Wali Gali"/></div><div class="fg"><label>City *</label><input class="fi" id="f-city" placeholder="e.g. Ropar"/></div></div>
+        <div class="frow"><div class="fg"><label>Category *</label><select class="fi" id="f-cat"><option value="">Select...</option><option>Cafe / Tea Stall</option><option>Street Food</option><option>Viewpoint</option><option>Heritage Site</option><option>Market / Bazaar</option><option>Nature Spot</option><option>Temple / Shrine</option><option>Art / Culture</option><option>Night Life</option><option>Other</option></select></div><div class="fg"><label>Budget</label><input class="fi" id="f-budget" placeholder="e.g. Free, Rs.50-100"/></div></div>
+      </div>
+      <div class="fsec"><h3>✍️ Details</h3>
+        <div class="fg"><label>Vibe</label><input class="fi" id="f-vibe" placeholder="e.g. Quiet, nostalgic, misty mornings..."/></div>
+        <div class="fg"><label>Description *</label><textarea class="fi" id="f-desc" placeholder="What makes this place special?"></textarea></div>
+        <div class="fg"><label>Best Time to Visit</label><textarea class="fi" id="f-timing" style="min-height:58px" placeholder="e.g. Winter (Oct-Feb)"></textarea></div>
+        <div class="fg"><label>Food to Try</label><input class="fi" id="f-food" placeholder="e.g. Kulhad chai with butter biscuits"/></div>
+      </div>
+      <div class="fsec"><h3>👤 Your Info</h3>
+        <div class="frow"><div class="fg"><label>Name</label><input class="fi" id="f-who" placeholder="Local guide, resident..."/></div><div class="fg"><label>Contact (optional)</label><input class="fi" id="f-contact" placeholder="Email or phone"/></div></div>
+      </div>
+      <button class="sbtn" id="sub-btn" onclick="submitGem()">📤 Submit Hidden Gem</button>
+      <div class="toast ok" id="t-ok">✅ Submitted! Pending admin review.</div>
+      <div class="toast err" id="t-err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Review Modal -->
+<div class="modal-bg" id="review-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h3 id="modal-place-name">Rate this place</h3>
+    <div class="stars" id="modal-stars">
+      <span class="star" data-v="1">★</span><span class="star" data-v="2">★</span>
+      <span class="star" data-v="3">★</span><span class="star" data-v="4">★</span>
+      <span class="star" data-v="5">★</span>
+    </div>
+    <textarea id="modal-comment" style="width:100%;border:1.5px solid var(--sand);border-radius:8px;padding:8px;font-family:'DM Sans',sans-serif;font-size:.82rem;margin:8px 0;min-height:70px;background:var(--mist);outline:none" placeholder="Share your experience..."></textarea>
+    <label style="display:flex;align-items:center;gap:6px;font-size:.76rem;color:var(--moss);cursor:pointer;margin-bottom:10px">
+      <input type="checkbox" id="modal-verify"/> ✓ I'm a local — verify this place
+    </label>
+    <button onclick="submitReview()" style="width:100%;background:var(--forest);color:var(--gold);border:none;border-radius:9px;padding:10px;font-family:'DM Sans',sans-serif;font-size:.84rem;cursor:pointer">Submit Review</button>
+    <div id="existing-reviews" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<script>
+const A=""; let lang="English"; let currentPlace=""; let modalRating=5; let mapInstance=null; let allLocations=[];
+
+/* ── Config ── */
+function applyConfig(){
+  const cfg=(typeof APP_CONFIG!=='undefined')?APP_CONFIG:{};
+  const name=cfg.APP_NAME||"CultureQuest";
+  const suffix=cfg.APP_NAME_SUFFIX||"Quest";
+  const prefix=name.replace(suffix,"");
+  document.getElementById('nav-brand').innerHTML=prefix+'<span>'+suffix+'</span>';
+  if(cfg.PAGE_TITLE) document.title=cfg.PAGE_TITLE;
+  const ch=document.getElementById('chat-header-name');
+  if(ch) ch.textContent=name+' AI';
+  const cs=document.getElementById('chat-header-sub');
+  if(cs&&cfg.CHAT_SUBTITLE) cs.textContent=cfg.CHAT_SUBTITLE;
+}
+
+/* ── Tab switching ── */
+function switchTab(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  document.getElementById(id+'-panel').classList.add('on');
+  btn.classList.add('on');
+  if(id==='map') initMap();
+  if(id==='trips') loadTrips();
+}
+function setLang(l){lang=l;const h={"Hindi":"हिंदी में पूछें...","Punjabi":"ਪੰਜਾਬੀ ਵਿੱਚ ਪੁੱਛੋ...","English":"Ask in any language..."};document.getElementById('ci').placeholder=h[l]||h.English;}
+
+/* ── Init ── */
+window.addEventListener('DOMContentLoaded',async()=>{
+  applyConfig();
+  await loadSB();
+  await loadR();
+  await loadHistory();
+  const cfg=(typeof APP_CONFIG!=='undefined')?APP_CONFIG:{};
+  const welcome=cfg.WELCOME_MESSAGE||"Hey! What brings you to town? Want to hit any specific places or vibes this trip?";
+  botMsg(welcome);
+});
+
+/* ── Chat History Sidebar ── */
+async function loadHistory(){
+  try{
+    const d=await fetch(A+'/api/sessions').then(r=>r.json());
+    const el=document.getElementById('hist-list');
+    if(!d.sessions||!d.sessions.length){
+      el.innerHTML='<div class="hist-empty">Your past chats will appear here</div>';return;
+    }
+    el.innerHTML='';
+    d.sessions.forEach(s=>{
+      const item=document.createElement('div');
+      item.className='hist-item';item.dataset.id=s.id;
+      item.innerHTML='<div class="hi-title">'+s.title+'</div><div class="hi-date">'+s.date+'</div>';
+      item.onclick=()=>loadSession(s.id,item);
+      el.appendChild(item);
+    });
+  }catch(e){}
+}
+
+async function loadSession(sid,el){
+  document.querySelectorAll('.hist-item').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+  try{
+    const d=await fetch(A+'/api/sessions/'+sid).then(r=>r.json());
+    const c=document.getElementById('msgs');c.innerHTML='';
+    d.messages.forEach(m=>{
+      if(m.role==='user') userMsg(m.content);
+      else{
+        const div=document.createElement('div');div.className='msg b';
+        const html=formatMsg(m.content);
+        div.innerHTML='<div class="m-av">🌿</div><div class="bub">'+html+'</div>';
+        c.appendChild(div);
+      }
+    });
+    c.scrollTop=c.scrollHeight;
+  }catch(e){}
+}
+
+function newChat(){
+  document.getElementById('msgs').innerHTML='';
+  document.querySelectorAll('.hist-item').forEach(i=>i.classList.remove('active'));
+  const cfg=(typeof APP_CONFIG!=='undefined')?APP_CONFIG:{};
+  botMsg(cfg.WELCOME_MESSAGE||"Hey! Where are we planning next? 🗺️");
+}
+
+/* ── Locations sidebar ── */
+async function loadSB(){
+  try{
+    const d=await fetch(A+'/api/locations').then(r=>r.json());
+    allLocations=d.locations||[];
+    const l=document.getElementById('gl');l.innerHTML='';
+    d.locations.forEach(loc=>{
+      const nm=loc["Place Name"]||"",cy=loc["City"]||"",vi=loc["Vibe Description"]||"",
+            bg=(loc["Budget"]||"").replace(/[?]/g,"Rs."),
+            tp=(loc["type of location"]||"").toLowerCase(),
+            ig=tp.includes("hidden")||tp.includes("local"),
+            ch=document.createElement('div');
+      ch.className='chip';
+      ch.innerHTML='<div class="cn">'+nm+'</div><div class="cc">'+cy+'</div>'+(vi?'<div class="cv">'+vi+'</div>':'')+(bg?'<div class="cb">'+bg+'</div>':'')+'<span class="cbadge '+(ig?'gem':'off')+'">'+(ig?'Hidden Gem':'Official')+'</span>';
+      ch.onclick=()=>vp(nm,cy);l.appendChild(ch);
+    });
+    document.getElementById('s-t').textContent=d.total;
+    document.getElementById('s-g').textContent=d.hidden_gems;
+    document.getElementById('s-o').textContent=d.official;
+    // init map markers
+    if(mapInstance) plotMarkers(d.locations);
+  }catch(e){document.getElementById('gl').innerHTML='<div style="color:rgba(255,255,255,.28);font-size:.7rem;padding:6px 0">Server not running?</div>';}
+}
+
+async function vp(nm,cy){
+  try{await fetch(A+'/api/track-view',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({place_name:nm})});await loadR();}catch(e){}
+  document.getElementById('ci').value='Tell me about '+nm+' in '+cy;send();
+}
+
+async function loadR(){
+  try{
+    const d=await fetch(A+'/api/recommendations?n=4').then(r=>r.json());
+    const rl=document.getElementById('r-list'),rh=document.getElementById('r-ht'),rb=document.getElementById('rc-btn');
+    if(!d.recommendations||!d.recommendations.length){rl.innerHTML='<div class="r-em">Browse places to get recommendations</div>';return;}
+    rl.innerHTML='';
+    d.recommendations.forEach(rec=>{
+      const tp=(rec["type of location"]||"").toLowerCase(),ig=tp.includes("hidden")||tp.includes("local"),
+            c=document.createElement('div');
+      c.className='rc'+(ig?' gc':'');
+      c.innerHTML='<div class="r-nm">'+rec["Place Name"]+'</div><div class="r-cy">'+rec["City"]+' · '+rec["Category"]+'</div><div class="r-rs">'+rec["reason"]+'</div><span class="r-bd '+(ig?'gem':'off')+'">'+(ig?'Gem':'Official')+'</span>';
+      c.onclick=()=>vp(rec["Place Name"],rec["City"]);rl.appendChild(c);
+    });
+    if(d.based_on&&d.based_on.length){rh.innerHTML=d.based_on.slice(0,3).map(h=>'<span class="rht">'+h+'</span>').join('');rb.style.display='block';}
+  }catch(e){}
+}
+
+async function clearH(){
+  try{await fetch(A+'/api/clear-history',{method:'POST'});}catch(e){}
+  document.getElementById('r-list').innerHTML='<div class="r-em">History cleared</div>';
+  document.getElementById('r-ht').innerHTML='';document.getElementById('rc-btn').style.display='none';
+}
+
+/* ── Weather / Distance ── */
+async function fetchW(){
+  const cy=document.getElementById('w-city').value.trim();if(!cy)return;
+  document.getElementById('w-res').style.display='none';document.getElementById('w-err').style.display='none';
+  try{
+    const r=await fetch(A+'/api/weather/'+encodeURIComponent(cy)),d=await r.json();
+    if(!r.ok){document.getElementById('w-err').style.display='block';return;}
+    document.getElementById('w-icon').src=d.icon;document.getElementById('w-temp').textContent=d.temp_c+'°C';
+    document.getElementById('w-name').textContent=d.city;document.getElementById('w-cond').textContent=d.emoji+' '+d.condition;
+    document.getElementById('w-hum').textContent=d.humidity+'%';document.getElementById('w-wnd').textContent=d.wind_kph+' kph';
+    document.getElementById('w-fl').textContent=d.feels_like+'°C';document.getElementById('w-res').style.display='block';
+  }catch(e){document.getElementById('w-err').style.display='block';}
+}
+
+async function fetchD(){
+  const fr=document.getElementById('d-from').value.trim(),to=document.getElementById('d-to').value.trim();if(!fr||!to)return;
+  document.getElementById('d-res').style.display='none';document.getElementById('d-err').style.display='none';
+  try{
+    const r=await fetch(A+'/api/distance?from='+encodeURIComponent(fr)+'&to='+encodeURIComponent(to)),d=await r.json();
+    if(!r.ok){document.getElementById('d-err').style.display='block';return;}
+    document.getElementById('d-km').textContent=d.distance_km+' km';document.getElementById('d-time').textContent=d.duration_text;
+    document.getElementById('d-route').textContent=fr+' to '+to;document.getElementById('d-res').style.display='block';
+  }catch(e){document.getElementById('d-err').style.display='block';}
+}
+
+/* ── Sidebar toggle ── */
+function toggleHistSidebar(){
+  const sb=document.getElementById('hist-sb');
+  const btn=document.getElementById('hist-toggle');
+  sb.classList.toggle('collapsed');
+  btn.textContent=sb.classList.contains('collapsed')?'›':'‹';
+}
+
+/* ── Map (AWS Location Service + MapLibre GL JS) ── */
+const AWS_REGION  = 'ap-south-1';
+const AWS_API_KEY = 'v1.public.eyJqdGkiOiIyYTJjN2E2Zi01Y2Q1LTQ0ZDktODk4Ni1jODk2OGIwMTM5YmQifSquu4HVMc434A45iCMmldE6YqjNrl1iDRsUimKPkSwghT8u6OeF4xm8z9BIzT6mtjbFLw4rufsDgFWSUPda785e9e-xhGPViwNc2VePuJ_4koFOqUaJXDd_bK-E5OZkjkTzQahmyBZIu4K3K0-rr4tmTHCBA7fk26IdWjYz-8HlBlWTJufeH8LtlRGWeiMtLz_xng1ZwLyWM7zxxI62TboMFwkWPqZFPkFRGMCxryWQYBjqoxeYmOaLIqm-thn6j7QTzA_eiDgq4vEo8BobiMFVX37rncsDtXcbcCKcysEbZaW98qHiTmUCKWRTdlBe3PK9267jh22b3CeAe2xW1BE.Njg1MGZlZTUtYTI2ZS00MDdlLWJjNDktMDNmZDlkNzVmMjQ0';
+
+const cityCoords={
+  "Mumbai":[19.076,72.877],"Delhi":[28.613,77.209],"Jaipur":[26.912,75.787],
+  "Chandigarh":[30.733,76.779],"Goa":[15.299,74.124],"Kolkata":[22.572,88.363],
+  "Hyderabad":[17.385,78.486],"Bangalore":[12.972,77.594],"Bengaluru":[12.972,77.594],
+  "Pune":[18.520,73.856],"Amritsar":[31.634,74.872],"Shimla":[31.104,77.173],
+  "Manali":[32.239,77.188],"Ropar":[30.965,76.529],"Agra":[27.177,78.008],
+  "Varanasi":[25.317,83.005],"Udaipur":[24.585,73.712],"Jodhpur":[26.292,73.014],
+};
+
+let mapMarkers = [];
+
+function initMap(){
+  if(mapInstance) return;
+  try {
+    mapInstance = new maplibregl.Map({
+      container: 'map',
+      style: `https://maps.geo.${AWS_REGION}.amazonaws.com/v2/styles/Standard/descriptor?key=${AWS_API_KEY}&color-scheme=Light`,
+      center: [79, 22],
+      zoom: 4.5
+    });
+
+    mapInstance.addControl(new maplibregl.NavigationControl(), 'top-right');
+    mapInstance.on('load', () => {
+      if(allLocations.length) plotMarkers(allLocations);
+    });
+  } catch(e) {
+    console.error('Map init failed:', e);
+  }
+}
+
+function plotMarkers(locs){
+  if(!mapInstance) return;
+  // Remove old markers
+  mapMarkers.forEach(m => m.remove());
+  mapMarkers = [];
+
+  locs.forEach(loc => {
+    const city = loc["City"] || "", name = loc["Place Name"] || "";
+    const tp   = (loc["type of location"] || "").toLowerCase();
+    const ig   = tp.includes("hidden") || tp.includes("local");
+    const coords = cityCoords[city];
+    if(!coords) return;
+
+    const lat = coords[0] + (Math.random()-.5)*.08;
+    const lng = coords[1] + (Math.random()-.5)*.08;
+    const color = ig ? '#c4622d' : '#3d5c2e';
+
+    // Custom dot element
+    const el = document.createElement('div');
+    el.style.cssText = `width:12px;height:12px;background:${color};border:2px solid white;`+
+                       `border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.4);cursor:pointer`;
+
+    const popup = new maplibregl.Popup({offset:10, closeButton:false}).setHTML(
+      `<strong>${name}</strong><br>${city}<br>`+
+      `<small style="color:${color}">${ig?'🔴 Hidden Gem':'🟢 Official'}</small><br>`+
+      `<small>${loc["Vibe Description"]||''}</small>`
+    );
+
+    const marker = new maplibregl.Marker({element:el})
+      .setLngLat([lng, lat])
+      .setPopup(popup)
+      .addTo(mapInstance);
+
+    mapMarkers.push(marker);
+  });
+}
+
+function filterMap(city){
+  if(!mapInstance) return;
+  const filtered = city
+    ? allLocations.filter(l => l["City"]?.toLowerCase().includes(city.toLowerCase()))
+    : allLocations;
+  plotMarkers(filtered);
+  if(city && cityCoords[city.trim()]){
+    const c = cityCoords[city.trim()];
+    mapInstance.flyTo({center:[c[1], c[0]], zoom:11, speed:1.2});
+  }
+}
+
+/* ── Compare ── */
+async function doCompare(){
+  const c1=document.getElementById('cmp-c1').value.trim(),c2=document.getElementById('cmp-c2').value.trim(),days=document.getElementById('cmp-days').value;
+  if(!c1||!c2){alert('Enter both city names');return;}
+  const res=document.getElementById('cmp-result');
+  res.style.display='block';res.textContent='Comparing...';
+  try{
+    const d=await fetch(A+'/api/compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({city1:c1,city2:c2,days,language:lang})}).then(r=>r.json());
+    res.innerHTML=formatMsg(d.reply||d.error);
+  }catch(e){res.textContent='Server not reachable.';}
+}
+
+/* ── Surprise Me ── */
+async function surpriseMe(){
+  const sb=document.getElementById('sb');sb.disabled=true;
+  userMsg('🎲 Surprise me!');
+  const t=showTyping();
+  try{
+    const d=await fetch(A+'/api/surprise',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({language:lang})}).then(r=>r.json());
+    t.remove();
+    const html=formatMsg(d.reply||d.error||'Something went wrong.');
+    await botMsgHtml(html);
+    await loadHistory();
+  }catch(e){t.remove();await botMsgHtml('Cannot reach server.');}
+  sb.disabled=false;
+}
+
+/* ── Saved Trips ── */
+async function loadTrips(){
+  try{
+    const d=await fetch(A+'/api/trips').then(r=>r.json());
+    const el=document.getElementById('trips-list');
+    if(!d.trips||!d.trips.length){
+      el.innerHTML='<div style="color:#aaa;font-size:.84rem;text-align:center;padding:40px">No saved trips yet.<br>Save any AI response using the 💾 button in chat.</div>';return;
+    }
+    el.innerHTML='';
+    d.trips.forEach(trip=>{
+      const card=document.createElement('div');card.className='trip-card';
+      card.innerHTML=`<div class="trip-body"><div class="trip-title">${trip.title}</div><div class="trip-preview">${trip.content.replace(/<[^>]*>/g,'').slice(0,80)}…</div><div class="trip-date">Saved ${trip.saved_at}</div></div>
+      <div class="trip-actions">
+        <button class="trip-btn share" onclick="shareTrip('${trip.id}','${trip.title.replace(/'/g,"\\'")}',this)">🔗 Share</button>
+        <button class="trip-btn del" onclick="deleteTrip('${trip.id}',this)">🗑️</button>
+      </div>`;
+      el.appendChild(card);
+    });
+  }catch(e){}
+}
+
+async function saveCurrentMsg(content,btn){
+  const title=content.replace(/<[^>]*>/g,'').slice(0,40)+'…';
+  try{
+    await fetch(A+'/api/trips',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,content})});
+    btn.textContent='✅ Saved';btn.classList.add('saved');
+  }catch(e){}
+}
+
+async function shareTrip(tid,title,btn){
+  try{
+    const trips=await fetch(A+'/api/trips').then(r=>r.json());
+    const trip=trips.trips.find(t=>t.id===tid);if(!trip)return;
+    const d=await fetch(A+'/api/share',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,content:trip.content})}).then(r=>r.json());
+    const url=window.location.origin+d.url;
+    // Show link
+    let linkEl=btn.parentElement.nextElementSibling;
+    if(!linkEl||!linkEl.classList.contains('share-link')){linkEl=document.createElement('div');linkEl.className='share-link';btn.closest('.trip-card').appendChild(linkEl);}
+    linkEl.textContent=url;linkEl.style.display='block';
+    navigator.clipboard?.writeText(url);
+    btn.textContent='✅ Copied!';
+  }catch(e){}
+}
+
+async function deleteTrip(tid,btn){
+  if(!confirm('Delete this saved trip?'))return;
+  await fetch(A+'/api/trips/'+tid,{method:'DELETE'});
+  btn.closest('.trip-card').remove();
+}
+
+/* ── Reviews ── */
+function openReview(placeName){
+  currentPlace=placeName;modalRating=5;
+  document.getElementById('modal-place-name').textContent='⭐ '+placeName;
+  document.getElementById('modal-comment').value='';
+  document.getElementById('modal-verify').checked=false;
+  updateStars(5);
+  loadExistingReviews(placeName);
+  document.getElementById('review-modal').classList.add('on');
+}
+function closeModal(){document.getElementById('review-modal').classList.remove('on');}
+function updateStars(v){
+  modalRating=v;
+  document.querySelectorAll('.star').forEach(s=>{s.classList.toggle('on',parseInt(s.dataset.v)<=v);});
+}
+document.querySelectorAll('.star').forEach(s=>{s.onclick=()=>updateStars(parseInt(s.dataset.v));});
+async function loadExistingReviews(place){
+  try{
+    const d=await fetch(A+'/api/reviews/'+encodeURIComponent(place)).then(r=>r.json());
+    const el=document.getElementById('existing-reviews');
+    if(!d.count){el.innerHTML='<div style="color:#aaa;font-size:.74rem;text-align:center">No reviews yet — be first!</div>';return;}
+    el.innerHTML='<div style="font-size:.72rem;color:#888;margin-bottom:8px">'+d.count+' review(s) · Avg: '+'★'.repeat(Math.round(d.avg_rating))+' '+d.avg_rating+
+    (d.locally_verified?'<span class="verify-badge" style="margin-left:8px">✓ Locals Verified</span>':'')+'</div>'+
+    d.reviews.slice(0,3).map(r=>'<div style="background:var(--mist);border-radius:8px;padding:8px;margin-bottom:6px;font-size:.76rem"><span style="color:var(--gold)">'+'★'.repeat(r.rating)+'</span> <span style="color:#555">'+r.comment+'</span><div style="color:#bbb;font-size:.65rem;margin-top:2px">'+r.ts+'</div></div>').join('');
+  }catch(e){}
+}
+async function submitReview(){
+  const comment=document.getElementById('modal-comment').value.trim();
+  const verify=document.getElementById('modal-verify').checked;
+  try{
+    await fetch(A+'/api/reviews/'+encodeURIComponent(currentPlace),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rating:modalRating,comment,verify})});
+    closeModal();
+  }catch(e){}
+}
+
+/* ── Chat ── */
+function formatMsg(text){
+  return (text||'').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>').replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
+}
+
+function typewriterHTML(container,html,speed){
+  return new Promise(resolve=>{
+    const segs=[];let i=0;
+    while(i<html.length){
+      if(html[i]==='<'){const end=html.indexOf('>',i);if(end!==-1){segs.push({text:html.slice(i,end+1),isTag:true});i=end+1;continue;}}
+      if(html[i]==='&'){const end=html.indexOf(';',i);if(end!==-1&&end-i<=8){segs.push({text:html.slice(i,end+1),isTag:false,entity:true});i=end+1;continue;}}
+      segs.push({text:html[i],isTag:false});i++;
+    }
+    let idx=0,rendered='';
+    const cfg=(typeof APP_CONFIG!=='undefined')?APP_CONFIG:{};
+    const spd=cfg.TYPEWRITER_SPEED_MS!==undefined?cfg.TYPEWRITER_SPEED_MS:speed;
+    function tick(){
+      if(idx>=segs.length){resolve();return;}
+      const seg=segs[idx++];rendered+=seg.text;
+      while(idx<segs.length&&segs[idx].isTag){rendered+=segs[idx++].text;}
+      container.innerHTML=rendered;
+      const c=document.getElementById('msgs');if(c)c.scrollTop=c.scrollHeight;
+      setTimeout(tick,seg.isTag||seg.entity?0:spd);
+    }
+    tick();
+  });
+}
+
+function showTyping(){
+  const c=document.getElementById('msgs'),t=document.createElement('div');
+  t.className='msg b';t.innerHTML='<div class="m-av">🌿</div><div class="bub"><div class="typing"><div class="td"></div><div class="td"></div><div class="td"></div></div></div>';
+  c.appendChild(t);c.scrollTop=c.scrollHeight;return t;
+}
+
+async function botMsgHtml(html, placeName){
+  const c=document.getElementById('msgs');
+  const m=document.createElement('div');m.className='msg b';
+  const bub=document.createElement('div');bub.className='bub';
+  const av=document.createElement('div');av.className='m-av';av.textContent='🌿';
+  m.appendChild(av);m.appendChild(bub);c.appendChild(m);c.scrollTop=c.scrollHeight;
+  await typewriterHTML(bub,html,18);
+  // Add action buttons
+  const actions=document.createElement('div');actions.className='msg-actions';
+  const saveBtn=document.createElement('button');saveBtn.className='ma';saveBtn.textContent='💾 Save Trip';
+  saveBtn.onclick=()=>saveCurrentMsg(html,saveBtn);
+  actions.appendChild(saveBtn);
+  if(placeName){
+    const reviewBtn=document.createElement('button');reviewBtn.className='ma';reviewBtn.textContent='⭐ Rate';
+    reviewBtn.onclick=()=>openReview(placeName);
+    actions.appendChild(reviewBtn);
+    const verifyBtn=document.createElement('button');verifyBtn.className='ma';verifyBtn.textContent='✓ Locals Verify';
+    verifyBtn.onclick=async()=>{
+      const d=await fetch(A+'/api/verify/'+encodeURIComponent(placeName),{method:'POST'}).then(r=>r.json());
+      verifyBtn.textContent='✓ Verified ('+d.verify_count+')';verifyBtn.classList.add('saved');
+    };
+    actions.appendChild(verifyBtn);
+  }
+  // Share button
+  const shareBtn=document.createElement('button');shareBtn.className='ma';shareBtn.textContent='🔗 Share';
+  shareBtn.onclick=async()=>{
+    const d=await fetch(A+'/api/share',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title:'My Trip Plan',content:html})}).then(r=>r.json());
+    const url=window.location.origin+d.url;navigator.clipboard?.writeText(url);shareBtn.textContent='✅ Link copied!';
+  };
+  actions.appendChild(shareBtn);
+  bub.appendChild(actions);
+}
+
+function botMsg(html){
+  const c=document.getElementById('msgs'),t=showTyping();
+  return new Promise(res=>setTimeout(async()=>{t.remove();await botMsgHtml(html);res();},500+Math.random()*300));
+}
+
+function userMsg(t){
+  const c=document.getElementById('msgs'),m=document.createElement('div');
+  m.className='msg u';m.innerHTML='<div class="m-av">✈️</div><div class="bub">'+t+'</div>';
+  c.appendChild(m);c.scrollTop=c.scrollHeight;
+}
+
+function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
+function resize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+function sug(el){
+  const txt=el.textContent.replace('🎲 ','');
+  if(txt.includes('Surprise')){surpriseMe();return;}
+  document.getElementById('ci').value=txt;send();
+}
+
+async function send(){
+  const ci=document.getElementById('ci'),tx=ci.value.trim();if(!tx)return;
+  ci.value='';ci.style.height='auto';
+  const sb=document.getElementById('sb');sb.disabled=true;
+  userMsg(tx);
+  const lw=tx.toLowerCase();
+  if((lw.includes('weather')||lw.includes('temperature'))&&lw.includes('in')){const m=tx.match(/in\s+([A-Za-z\s]+?)(?:\?|$)/i);if(m){document.getElementById('w-city').value=m[1].trim();fetchW();}}
+  if(lw.includes('far')||lw.includes('distance')){const fm=tx.match(/from\s+([A-Za-z\s]+?)\s+to\s+/i),tm=tx.match(/to\s+([A-Za-z\s]+?)(?:\?|$)/i);if(fm&&tm){document.getElementById('d-from').value=fm[1].trim();document.getElementById('d-to').value=tm[1].trim();fetchD();}}
+  const am=tx.match(/(?:about|tell me about)\s+([A-Za-z\s]+?)(?:\s+in\s+|\?|$)/i);
+  if(am&&am[1].trim().length>3){fetch(A+'/api/track-view',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({place_name:am[1].trim()})}).then(()=>loadR()).catch(()=>{});}
+  const t=showTyping();
+  try{
+    const d=await fetch(A+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:tx,language:lang})}).then(r=>r.json());
+    t.remove();
+    const html=formatMsg(d.reply||d.error||'Something went wrong.');
+    const placeName=am&&am[1].trim().length>3?am[1].trim():null;
+    await botMsgHtml(html,placeName);
+    await loadHistory();
+  }catch(e){t.remove();await botMsgHtml('Cannot reach the server. Make sure app.py is running.');}
+  sb.disabled=false;ci.focus();
+}
+
+/* ── Submit Gem ── */
+async function submitGem(){
+  const nm=document.getElementById('f-name').value.trim(),cy=document.getElementById('f-city').value.trim(),ct=document.getElementById('f-cat').value,dc=document.getElementById('f-desc').value.trim();
+  if(!nm||!cy||!ct||!dc){alert('Fill Name, City, Category and Description.');return;}
+  const btn=document.getElementById('sub-btn');btn.disabled=true;btn.textContent='Submitting...';
+  try{
+    const r=await fetch(A+'/api/submit-gem',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:nm,city:cy,category:ct,vibe:document.getElementById('f-vibe').value.trim(),budget:document.getElementById('f-budget').value.trim(),description:dc,timing:document.getElementById('f-timing').value.trim(),food:document.getElementById('f-food').value.trim(),submitter:document.getElementById('f-who').value.trim(),contact:document.getElementById('f-contact').value.trim()})});
+    const d=await r.json();
+    if(r.ok){['f-name','f-city','f-vibe','f-budget','f-desc','f-timing','f-food','f-who','f-contact'].forEach(id=>document.getElementById(id).value='');document.getElementById('f-cat').value='';const ok=document.getElementById('t-ok');ok.style.display='block';setTimeout(()=>ok.style.display='none',5000);}
+    else{const er=document.getElementById('t-err');er.textContent='Error: '+(d.error||'failed');er.style.display='block';setTimeout(()=>er.style.display='none',5000);}
+  }catch(e){document.getElementById('t-err').textContent='Cannot reach server.';document.getElementById('t-err').style.display='block';}
+  btn.disabled=false;btn.textContent='📤 Submit Hidden Gem';
+}
+</script>
+</body>
+</html>
